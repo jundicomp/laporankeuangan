@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.5.1'
+export const APP_VERSION = '0.5.2'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,13 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.5.2', date: '2026-10-12', title: 'Logo penuh',
+    changes: [
+      { type: 'perbaikan', text: 'Logo di kop sidebar tampil penuh tanpa bingkai putih; tepi putih/transparan pada logo dipotong otomatis.' },
+      { type: 'tingkat', text: 'Logo yang diunggah di Pengaturan → Perusahaan langsung dirapikan (tepi kosong dibuang) sebelum disimpan, jadi invoice juga ikut rapi.' },
+    ],
+  },
   {
     version: '0.5.1', date: '2026-10-12', title: 'Tampilan sidebar',
     changes: [

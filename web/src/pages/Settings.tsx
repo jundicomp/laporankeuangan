@@ -2,6 +2,7 @@ import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { call, callTimed, errorText, getApiUrl, setApiUrl } from '../api/client'
 import { useSession, type Module } from '../auth/session'
 import { companyAccounts, type Rekening } from '../components/InvoiceDoc'
+import { loadImage, trimImage } from '../lib/image'
 import { Banner, Field, Modal, PageHead } from '../components/ui'
 
 const GROUPS: { title: string; kode: string[] }[] = [
@@ -148,7 +149,8 @@ function CompanyTab() {
 async function shrinkLogo(file: File): Promise<string> {
   const url = URL.createObjectURL(file)
   try {
-    const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('x')); i.src = url })
+    // buang tepi putih/transparan dulu supaya logo tampil penuh di kop
+    const img = await loadImage(await trimImage(url))
     for (const [maxW, maxH] of [[360, 140], [260, 100], [180, 70]]) {
       const r = Math.min(1, maxW / img.width, maxH / img.height)
       const cv = document.createElement('canvas')

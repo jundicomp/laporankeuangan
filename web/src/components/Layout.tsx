@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useSession } from '../auth/session'
 import { tglID } from '../lib/format'
+import { loadImage, trimImage } from '../lib/image'
 import { NAV, type NavItem } from '../nav'
 import { APP_NAME, APP_VERSION, CHANGELOG, CHANGE_LABEL, type ChangeType } from '../version'
 import { Modal } from './ui'
@@ -28,6 +29,22 @@ function useGroups(): Group[] {
     })
     return out
   }, [items])
+}
+
+/** Logo lama yang masih punya tepi putih dipotong otomatis saat tampil. */
+function useTrimmedLogo(src?: string) {
+  const [out, setOut] = useState({ src: src ?? '', wide: false })
+  useEffect(() => {
+    setOut({ src: src ?? '', wide: false })
+    if (!src) return
+    let alive = true
+    trimImage(src).then(async (t) => {
+      const im = await loadImage(t)
+      if (alive) setOut({ src: t, wide: im.naturalWidth / im.naturalHeight > 1.35 })
+    }).catch(() => { /* tampilkan aslinya */ })
+    return () => { alive = false }
+  }, [src])
+  return out
 }
 
 const isMobile = () => window.matchMedia('(max-width: 860px)').matches
@@ -76,7 +93,7 @@ export default function Layout() {
 
   const current = NAV.find(match)
   const initials = (s: string) => s.split(/\s+/).filter(Boolean).map((w) => w[0]).slice(0, 2).join('').toUpperCase() || '?'
-  const logo = boot?.company.logo_url
+  const logo = useTrimmedLogo(boot?.company.logo_url)
   const coName = company || boot?.company.nama || 'Perusahaan'
 
   const item = (n: NavItem) => (
@@ -92,7 +109,7 @@ export default function Layout() {
     <div className={`shell ${sideOpen ? 'side-open' : ''} ${mini ? 'mini' : ''}`}>
       <aside className="side">
         <div className="side-brand" onMouseEnter={showTip(coName)} onMouseLeave={hideTip}>
-          <span className={`side-mark ${logo ? 'img' : ''}`}>{logo ? <img src={logo} alt="" /> : initials(coName)}</span>
+          <span className={`side-mark ${logo.src ? 'img' : ''} ${logo.wide ? 'wide' : ''}`}>{logo.src ? <img src={logo.src} alt="" /> : initials(coName)}</span>
           <span className="side-name"><b>{coName}</b><small>Aplikasi Keuangan</small></span>
         </div>
 
