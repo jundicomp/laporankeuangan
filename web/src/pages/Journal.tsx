@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { call, errorText } from '../api/client'
 import { useSession } from '../auth/session'
 import { AccountPicker, useAccounts, type Account } from '../components/AccountPicker'
-import { Banner, PageHead, Spinner, fmtTime } from '../components/ui'
+import { Banner, Modal, PageHead, Req, Spinner, fmtTime } from '../components/ui'
 import { monthStart, rp, tglID, today } from '../lib/format'
 
 type Head = {
@@ -54,6 +54,7 @@ function JournalList() {
   const openId = sp.get('open')
   const flash = sp.get('msg')
 
+  // muat ulang daftar setiap ada pesan sukses baru (mis. setelah posting dari modal form)
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -64,7 +65,7 @@ function JournalList() {
       setErr(errorText(e))
     }
     setLoading(false)
-  }, [f, offset])
+  }, [f, offset, sp.get('t')]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { load() }, [load])
 
   const open = (id: string | null) => {
@@ -99,7 +100,7 @@ function JournalList() {
             <table className="tbl">
               <thead><tr><th>Tanggal</th><th>Nomor</th><th>Keterangan</th><th className="r">Total</th><th>Status</th></tr></thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={5} className="muted">Belum ada jurnal. Mulai dengan jurnal saldo awal (jenis SA).</td></tr>}
+                {rows.length === 0 && <tr><td colSpan={5} className="hint">ⓘ Belum ada jurnal. Mulai dengan jurnal saldo awal (jenis SA).</td></tr>}
                 {rows.map((h) => (
                   <tr key={h.id} className={`click ${openId === h.id ? 'sel' : ''}`} onClick={() => open(h.id)}>
                     <td className="nowrap">{tglID(h.tgl)}</td>
@@ -198,35 +199,42 @@ function JournalDetail({ id, onClose, onChanged }: { id: string; onClose: () => 
       {msg && <Banner kind="ok">{msg}</Banner>}
       <Banner kind="err">{err}</Banner>
 
-      {ask ? (
-        <div className="stack">
-          <label className="field"><span>{ask === 'void' ? 'Alasan pembatalan' : 'Alasan penolakan'}</span>
-            <input value={alasan} onChange={(e) => setAlasan(e.target.value)} autoFocus placeholder="wajib, tercatat di audit log" />
-          </label>
-          <div className="row end">
-            <button className="btn" onClick={() => setAsk(null)}>Batal</button>
-            <button className="btn warn" disabled={busy || !alasan.trim()} onClick={() => ask === 'void'
-              ? act('journal.void', { alasan }, j.status === 'posted' ? 'Jurnal dibatalkan.' : 'Draft dibuang.')
-              : act('journal.reject', { alasan }, 'Jurnal dikembalikan ke draft.')}>
-              {ask === 'void' ? (j.status === 'posted' ? 'Batalkan jurnal' : 'Buang draft') : 'Tolak'}
-            </button>
-          </div>
-          {ask === 'void' && j.status === 'posted' && <p className="muted small">Jurnal tidak dihapus: sistem membuat jurnal pembalik (JR) dengan tanggal yang sama sehingga saldo kembali, dan jejaknya tetap terlihat.</p>}
-        </div>
-      ) : (
-        <div className="row">
-          {j.status === 'draft' && can('jurnal.edit') && <button className="btn primary" onClick={() => nav(`/jurnal/${j.id}`)}>Edit / posting</button>}
-          {j.status === 'menunggu' && can('jurnal.approve') && !mine && (
+      <div className="row">
+        {j.status === 'draft' && can('jurnal.edit') && <button className="btn primary" onClick={() => nav(`/jurnal/${j.id}`)}>Edit / posting</button>}
+        {j.status === 'menunggu' && can('jurnal.approve') && !mine && (
+          <>
+            <button className="btn primary" disabled={busy} onClick={() => act('journal.approve', {}, 'Jurnal disetujui dan diposting.')}>Setujui</button>
+            <button className="btn" onClick={() => { setErr(''); setAsk('reject') }}>Tolak</button>
+          </>
+        )}
+        {j.status === 'menunggu' && mine && <span className="hint">ⓘ Menunggu disetujui pengguna lain.</span>}
+        {(j.status === 'draft' || j.status === 'menunggu' || (j.status === 'posted' && j.jenis !== 'JT')) && can('jurnal.edit') && (
+          <button className="btn warn" onClick={() => { setErr(''); setAsk('void') }}>{j.status === 'posted' ? 'Batalkan' : 'Buang draft'}</button>
+        )}
+      </div>
+      {ask && (
+        <Modal
+          size="sm"
+          title={ask === 'void' ? (j.status === 'posted' ? `Batalkan ${j.no}?` : 'Buang draft ini?') : `Tolak jurnal ini?`}
+          onClose={() => { setAsk(null); setAlasan('') }}
+          dirty={!!alasan.trim()}
+          footer={
             <>
-              <button className="btn primary" disabled={busy} onClick={() => act('journal.approve', {}, 'Jurnal disetujui dan diposting.')}>Setujui</button>
-              <button className="btn" onClick={() => setAsk('reject')}>Tolak</button>
+              <button className="btn" onClick={() => { setAsk(null); setAlasan('') }}>Kembali</button>
+              <button className="btn danger" disabled={busy || !alasan.trim()} onClick={() => ask === 'void'
+                ? act('journal.void', { alasan }, j.status === 'posted' ? 'Jurnal dibatalkan.' : 'Draft dibuang.')
+                : act('journal.reject', { alasan }, 'Jurnal dikembalikan ke draft.')}>
+                {busy ? 'Memproses…' : ask === 'void' ? (j.status === 'posted' ? 'Batalkan jurnal' : 'Buang draft') : 'Tolak'}
+              </button>
             </>
-          )}
-          {j.status === 'menunggu' && mine && <span className="muted small">Menunggu disetujui pengguna lain.</span>}
-          {(j.status === 'draft' || j.status === 'menunggu' || (j.status === 'posted' && j.jenis !== 'JT')) && can('jurnal.edit') && (
-            <button className="btn warn" onClick={() => setAsk('void')}>{j.status === 'posted' ? 'Batalkan' : 'Buang draft'}</button>
-          )}
-        </div>
+          }
+        >
+          <label className="field"><span>{ask === 'void' ? 'Alasan pembatalan' : 'Alasan penolakan'}<Req /></span>
+            <input value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="tercatat di audit log" />
+          </label>
+          {ask === 'void' && j.status === 'posted' && <p className="hint">ⓘ Jurnal tidak dihapus: sistem membuat jurnal pembalik (JR) dengan tanggal yang sama sehingga saldo kembali, dan jejaknya tetap terlihat.</p>}
+          <Banner kind="err">{err}</Banner>
+        </Modal>
       )}
     </div>
   )
@@ -264,7 +272,7 @@ function LedgerTab({ initial }: { initial: string }) {
         <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
       </div>
       <Banner kind="err">{err}</Banner>
-      {!akun && <div className="card empty"><p className="muted">Pilih akun untuk melihat mutasi dan saldonya.</p></div>}
+      {!akun && <div className="card empty"><p className="hint">ⓘ Pilih akun untuk melihat mutasi dan saldonya.</p></div>}
       {akun && (loading || !d ? <Spinner /> : (
         <div className="card flush">
           <div className="report-head">
@@ -328,7 +336,7 @@ function TrialTab({ onOpen }: { onOpen: (kode: string) => void }) {
           <table className="tbl">
             <thead><tr><th>Kode</th><th>Akun</th><th className="r">Debit</th><th className="r">Kredit</th></tr></thead>
             <tbody>
-              {d.rows.length === 0 && <tr><td colSpan={4} className="muted">Belum ada saldo. Posting jurnal saldo awal dulu.</td></tr>}
+              {d.rows.length === 0 && <tr><td colSpan={4} className="hint">ⓘ Belum ada saldo. Posting jurnal saldo awal dulu.</td></tr>}
               {d.rows.map((r) => (
                 <tr key={r.kode} className="click" onClick={() => onOpen(r.kode)}>
                   <td className="mono">{r.kode}</td><td>{r.nama}</td>
@@ -353,6 +361,7 @@ function CoaTab() {
   const accounts = useAccounts()
   const { can } = useSession()
   const [edit, setEdit] = useState<Partial<Account> & { isNew?: boolean } | null>(null)
+  const [flash, setFlash] = useState('')
   const [q, setQ] = useState('')
 
   const depth = useMemo(() => {
@@ -364,11 +373,12 @@ function CoaTab() {
   const editable = can('jurnal.edit')
 
   return (
-    <div className={edit ? 'split' : ''}>
+    <>
+      {flash && <Banner kind="ok">{flash}</Banner>}
       <div className="card flush">
         <div className="filters pad">
           <input className="grow" placeholder="Cari akun…" value={q} onChange={(e) => setQ(e.target.value)} />
-          {editable && <button className="btn" onClick={() => setEdit({ isNew: true, tipe: 'beban', saldo_normal: 'D', is_header: false, aktif: true, parent: '' })}>+ Akun</button>}
+          {editable && <button className="btn" onClick={() => { setFlash(''); setEdit({ isNew: true, tipe: 'beban', saldo_normal: 'D', is_header: false, aktif: true, parent: '' }) }}>+ Akun</button>}
         </div>
         <table className="tbl coa">
           <thead><tr><th>Kode</th><th>Nama akun</th><th>Tipe</th><th>Normal</th><th></th></tr></thead>
@@ -385,58 +395,65 @@ function CoaTab() {
           </tbody>
         </table>
       </div>
-      {edit && <CoaForm key={edit.isNew ? 'new' : edit.kode} acc={edit} headers={accounts.filter((a) => a.is_header)} onClose={() => setEdit(null)} />}
-    </div>
+      {edit && <CoaForm key={edit.isNew ? 'new' : edit.kode} acc={edit} headers={accounts.filter((a) => a.is_header)} onClose={() => setEdit(null)} onSaved={(t) => { setFlash(t); setEdit(null) }} />}
+    </>
   )
 }
 
-function CoaForm({ acc, headers, onClose }: { acc: Partial<Account> & { isNew?: boolean }; headers: Account[]; onClose: () => void }) {
+function CoaForm({ acc, headers, onClose, onSaved }: { acc: Partial<Account> & { isNew?: boolean }; headers: Account[]; onClose: () => void; onSaved: (text: string) => void }) {
   const { reload } = useSession()
   const [f, setF] = useState({ ...acc })
-  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
+  const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
+  const dirty = JSON.stringify(f) !== JSON.stringify(acc)
 
   const save = async () => {
+    setErr('')
+    if (!f.kode?.trim() || !f.nama?.trim()) { setErr('Kode dan nama akun wajib diisi.'); return }
     setBusy(true)
-    setMsg(null)
     try {
       await call('coa.save', f)
       await reload()
-      setMsg({ kind: 'ok', text: acc.isNew ? 'Akun ditambahkan.' : 'Akun disimpan.' })
-      if (acc.isNew) setF({ ...f, isNew: false })
+      onSaved(acc.isNew ? `Akun ${f.kode} · ${f.nama} ditambahkan.` : `Akun ${f.kode} disimpan.`)
     } catch (e) {
-      setMsg({ kind: 'err', text: errorText(e) })
+      setErr(errorText(e))
+      setBusy(false)
     }
-    setBusy(false)
   }
 
   return (
-    <div className="card panel stack">
-      <div className="panel-head"><h3>{acc.isNew ? 'Akun baru' : `Edit · ${acc.kode}`}</h3><button className="x" onClick={onClose}>×</button></div>
-      <label className="field"><span>Kode</span><input value={f.kode ?? ''} onChange={(e) => setF({ ...f, kode: e.target.value })} disabled={!f.isNew} placeholder="mis. 6-1902" /></label>
-      <label className="field"><span>Nama</span><input value={f.nama ?? ''} onChange={(e) => setF({ ...f, nama: e.target.value })} /></label>
-      <label className="field"><span>Induk (header)</span>
-        <select value={f.parent ?? ''} onChange={(e) => {
-          const p = headers.find((h) => h.kode === e.target.value)
-          setF({ ...f, parent: e.target.value, ...(p && f.isNew ? { tipe: p.tipe, saldo_normal: p.saldo_normal } : {}) })
-        }}>
-          <option value="">— tanpa induk —</option>
-          {headers.map((h) => <option key={h.kode} value={h.kode}>{h.kode} · {h.nama}</option>)}
-        </select>
-      </label>
-      <div className="grid2">
-        <label className="field"><span>Tipe</span>
-          <select value={f.tipe} onChange={(e) => setF({ ...f, tipe: e.target.value })}>{TIPE.map((t) => <option key={t} value={t}>{TIPE_LABEL[t]}</option>)}</select>
+    <Modal
+      size="sm"
+      title={acc.isNew ? 'Akun baru' : `Edit akun ${acc.kode}`}
+      onClose={onClose}
+      dirty={dirty && !busy}
+      footer={<><button className="btn" onClick={onClose}>Batal</button><button className="btn primary" onClick={save} disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button></>}
+    >
+      <div className="stack">
+        <label className="field"><span>Kode<Req /></span><input value={f.kode ?? ''} onChange={(e) => setF({ ...f, kode: e.target.value })} disabled={!f.isNew} placeholder="mis. 6-1902" /></label>
+        <label className="field"><span>Nama akun<Req /></span><input value={f.nama ?? ''} onChange={(e) => setF({ ...f, nama: e.target.value })} /></label>
+        <label className="field"><span>Induk (header)</span>
+          <select value={f.parent ?? ''} onChange={(e) => {
+            const p = headers.find((h) => h.kode === e.target.value)
+            setF({ ...f, parent: e.target.value, ...(p && f.isNew ? { tipe: p.tipe, saldo_normal: p.saldo_normal } : {}) })
+          }}>
+            <option value="">— tanpa induk —</option>
+            {headers.map((h) => <option key={h.kode} value={h.kode}>{h.kode} · {h.nama}</option>)}
+          </select>
         </label>
-        <label className="field"><span>Saldo normal</span>
-          <select value={f.saldo_normal} onChange={(e) => setF({ ...f, saldo_normal: e.target.value })}><option value="D">Debit</option><option value="K">Kredit</option></select>
-        </label>
+        <div className="grid2">
+          <label className="field"><span>Tipe<Req /></span>
+            <select value={f.tipe} onChange={(e) => setF({ ...f, tipe: e.target.value })}>{TIPE.map((t) => <option key={t} value={t}>{TIPE_LABEL[t]}</option>)}</select>
+          </label>
+          <label className="field"><span>Saldo normal<Req /></span>
+            <select value={f.saldo_normal} onChange={(e) => setF({ ...f, saldo_normal: e.target.value })}><option value="D">Debit</option><option value="K">Kredit</option></select>
+          </label>
+        </div>
+        <label className="check"><input type="checkbox" checked={!!f.is_header} onChange={(e) => setF({ ...f, is_header: e.target.checked })} /> Akun header (pengelompok, tidak bisa dipakai di jurnal)</label>
+        {!f.isNew && <label className="check"><input type="checkbox" checked={f.aktif !== false} onChange={(e) => setF({ ...f, aktif: e.target.checked })} /> Aktif</label>}
+        <p className="hint">ⓘ Akun yang sudah dipakai jurnal tidak bisa dihapus atau diubah saldo normalnya; nonaktifkan bila saldonya sudah nol.</p>
+        <Banner kind="err">{err}</Banner>
       </div>
-      <label className="check"><input type="checkbox" checked={!!f.is_header} onChange={(e) => setF({ ...f, is_header: e.target.checked })} /> Akun header (pengelompok, tidak bisa dipakai di jurnal)</label>
-      {!f.isNew && <label className="check"><input type="checkbox" checked={f.aktif !== false} onChange={(e) => setF({ ...f, aktif: e.target.checked })} /> Aktif</label>}
-      {msg && <Banner kind={msg.kind}>{msg.text}</Banner>}
-      <button className="btn primary" onClick={save} disabled={busy || !f.kode || !f.nama}>{busy ? 'Menyimpan…' : 'Simpan'}</button>
-      <p className="muted small">Akun yang sudah dipakai jurnal tidak bisa dihapus atau diubah saldo normalnya; nonaktifkan bila saldonya sudah nol.</p>
-    </div>
+    </Modal>
   )
 }

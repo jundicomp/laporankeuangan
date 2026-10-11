@@ -36,7 +36,7 @@ export function ConnectPage() {
     <AuthShell>
       <form onSubmit={submit} className="stack">
         <h2>Hubungkan ke server</h2>
-        <p className="muted">Tempel URL Web App Apps Script yang berakhiran <code>/exec</code>.</p>
+        <p className="hint">Tempel URL Web App Apps Script yang berakhiran <code>/exec</code>.</p>
         <Field label="URL server" value={url} onChange={(e) => setUrl(e.target.value)} placeholder="https://script.google.com/macros/s/…/exec" required />
         {status === 'offline' && <Banner kind="err">{error}</Banner>}
         <button className="btn primary" disabled={!url}>Hubungkan</button>
@@ -70,7 +70,7 @@ export function SetupOwnerPage() {
     <AuthShell>
       <form onSubmit={submit} className="stack">
         <h2>Buat akun owner</h2>
-        <p className="muted">Langkah sekali saja. Kode setup ada di <b>Log eksekusi</b> Apps Script setelah menjalankan <code>upgradeSchema</code>.</p>
+        <p className="hint">ⓘ Langkah sekali saja. Kode setup ada di <b>Log eksekusi</b> Apps Script setelah menjalankan <code>upgradeSchema</code>.</p>
         <Field label="Kode setup" value={f.setupCode} onChange={set('setupCode')} placeholder="8 karakter" required autoComplete="off" />
         <Field label="Nama perusahaan" value={f.namaPerusahaan} onChange={set('namaPerusahaan')} placeholder="CV / PT / Toko …" required />
         <div className="grid2">
@@ -118,7 +118,7 @@ export function LoginPage() {
         <Field label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         <Banner kind="err">{err}</Banner>
         <button className="btn primary" disabled={busy}>{busy ? 'Memeriksa…' : 'Masuk'}</button>
-        <p className="muted small">3× salah password, akun dikunci 15 menit. Lupa password? Minta owner meresetnya di menu Pengguna & Akses.</p>
+        <p className="warn-text">⚠ 3× salah password, akun dikunci 15 menit. Lupa password? Minta owner meresetnya di menu Pengguna & Akses.</p>
       </form>
     </AuthShell>
   )

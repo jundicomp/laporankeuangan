@@ -36,7 +36,7 @@ export function HomePage() {
             </li>
           ))}
         </ol>
-        <p className="muted small">Dashboard keuangan lengkap (omzet, laba, kas, piutang, peringatan) muncul di Langkah 4, setelah ada transaksi yang bisa dihitung.</p>
+        <p className="hint">ⓘ Dashboard keuangan lengkap (omzet, laba, kas, piutang, peringatan) muncul di Langkah 4, setelah ada transaksi yang bisa dihitung.</p>
       </div>
     </>
   )
@@ -53,7 +53,7 @@ export function PlaceholderPage({ item }: { item: NavItem }) {
         <h3>Sedang dibangun</h3>
         <p className="muted">Halaman {item.label} dikerjakan di <b>{item.step}</b>. Menu ini sudah tampil karena peran Anda punya akses dan modulnya aktif.</p>
         {ready.length > 0 && (
-          <p className="muted small">Yang sudah bisa dipakai: {ready.map((n, i) => (
+          <p className="hint">Yang sudah bisa dipakai: {ready.map((n, i) => (
             <span key={n.path}>{i > 0 && ', '}<Link to={n.path}>{n.label}</Link></span>
           ))}</p>
         )}
@@ -68,7 +68,7 @@ export function ForbiddenPage() {
       <PageHead title="Tidak ada akses" />
       <div className="card empty">
         <div className="empty-ic">⚿</div>
-        <p className="muted">Peran Anda tidak punya izin untuk halaman ini, atau modulnya sedang nonaktif. Hubungi owner bila perlu akses.</p>
+        <p className="warn-text">⚠ Peran Anda tidak punya izin untuk halaman ini, atau modulnya sedang nonaktif. Hubungi owner bila perlu akses.</p>
         <Link className="btn" to="/">Kembali</Link>
       </div>
     </>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { call, errorText } from '../api/client'
 import { useSession } from '../auth/session'
-import { Banner, PageHead, Spinner, fmtTime } from '../components/ui'
+import { Banner, Modal, PageHead, Req, Spinner, fmtTime } from '../components/ui'
 import { bulanID } from '../lib/format'
 
 type P = { periode: string; status: string; diubah_oleh: string; diubah_pada: string; alasan: string; posted: number; draft: number }
@@ -61,7 +61,7 @@ export function PeriodsPage() {
                   <b>{bulanID(p.periode)}</b>
                   <span className={`pill ${locked ? 'n' : 'g'}`}>{locked ? '🔒 Dikunci' : 'Terbuka'}</span>
                 </div>
-                <div className="muted small">{p.posted} jurnal posted{p.draft ? ` · ` : ''}{p.draft ? <Link to="/jurnal?tab=daftar">{p.draft} draft</Link> : ''}</div>
+                <div className="small">{p.posted} jurnal posted{p.draft ? <> · <Link to="/jurnal?tab=daftar" className="warn-text">{p.draft} draft belum diposting</Link></> : ''}</div>
                 {p.diubah_oleh && p.diubah_oleh !== 'setup' && <div className="muted small">{locked ? 'Dikunci' : 'Dibuka'} {p.diubah_oleh} · {fmtTime(p.diubah_pada)}{p.alasan ? ` · ${p.alasan}` : ''}</div>}
                 <div className="row">
                   {!locked && can('periode.lock') && (
@@ -84,20 +84,20 @@ export function PeriodsPage() {
           <li>Periksa <Link to="/jurnal?tab=neraca-saldo">neraca saldo</Link> — harus seimbang.</li>
           <li>Kunci periode.</li>
         </ol>
-        <p className="muted small">Tutup buku tahunan (jurnal penutup otomatis ke saldo laba) dibangun bersama modul laporan PSAK.</p>
+        <p className="hint">ⓘ Tutup buku tahunan (jurnal penutup otomatis ke saldo laba) dibangun bersama modul laporan PSAK.</p>
       </div>
       {reopen && (
-        <div className="modal-bg" onClick={() => setReopen(null)}>
-          <div className="modal stack" onClick={(e) => e.stopPropagation()}>
-            <h3>Buka kembali {bulanID(reopen.periode)}?</h3>
-            <p className="muted">Laporan bulan ini bisa berubah lagi. Alasan dicatat di audit log.</p>
-            <label className="field"><span>Alasan</span><input value={alasan} onChange={(e) => setAlasan(e.target.value)} autoFocus placeholder="mis. koreksi invoice yang terlewat" /></label>
-            <div className="row end">
-              <button className="btn" onClick={() => setReopen(null)}>Batal</button>
-              <button className="btn warn" disabled={!alasan.trim() || !!busy} onClick={() => set(reopen, 'buka', alasan)}>Buka kembali</button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          size="sm"
+          title={`Buka kembali ${bulanID(reopen.periode)}?`}
+          onClose={() => setReopen(null)}
+          dirty={!!alasan.trim()}
+          footer={<><button className="btn" onClick={() => setReopen(null)}>Batal</button><button className="btn danger" disabled={!alasan.trim() || !!busy} onClick={() => set(reopen, 'buka', alasan)}>{busy ? 'Memproses…' : 'Buka kembali'}</button></>}
+        >
+          <p className="warn-text">⚠ Laporan bulan ini bisa berubah lagi setelah dibuka. Alasan dicatat di audit log.</p>
+          <label className="field"><span>Alasan<Req /></span><input value={alasan} onChange={(e) => setAlasan(e.target.value)} placeholder="mis. koreksi invoice yang terlewat" /></label>
+          <Banner kind="err">{err}</Banner>
+        </Modal>
       )}
     </>
   )

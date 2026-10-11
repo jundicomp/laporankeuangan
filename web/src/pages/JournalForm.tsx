@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { call, errorText } from '../api/client'
 import { useSession } from '../auth/session'
 import { AccountPicker } from '../components/AccountPicker'
-import { Banner, PageHead, Spinner } from '../components/ui'
+import { Banner, Modal, Req, Spinner } from '../components/ui'
 import { bulanID, parseNum, rp, today } from '../lib/format'
 
 type Line = { akun_id: string; memo: string; debit: string; kredit: string }
@@ -74,8 +74,19 @@ export function JournalFormPage() {
     if (side === 'kredit' && diff > 0) setLine(i, { kredit: rp(diff) })
   }
 
+  /** Alasan tombol Posting belum bisa dipakai — ditampilkan, bukan disembunyikan. */
+  const blocker = !keterangan.trim() ? 'Isi kolom Keterangan dulu.'
+    : totals.bad ? 'Ada angka yang tidak valid.'
+    : filled.length < 2 ? 'Isi minimal 2 baris akun.'
+    : diff !== 0 ? `Debit dan kredit belum seimbang (selisih ${rp(Math.abs(diff))}).`
+    : totals.d <= 0 ? 'Nominal masih kosong.'
+    : locked ? 'Periode tanggal ini sedang dikunci.'
+    : ''
+
   const save = async (submit: boolean) => {
     setErr('')
+    if (!keterangan.trim()) { setErr('Keterangan wajib diisi — tulis singkat untuk apa jurnal ini.'); return }
+    if (submit && blocker) { setErr(blocker); return }
     setBusy(submit ? 'post' : 'draft')
     try {
       const payload = {
@@ -84,49 +95,57 @@ export function JournalFormPage() {
       }
       const r = await call<Saved>('journal.save', payload)
       const msg = r.status === 'posted' ? `Jurnal ${r.no} diposting.` : r.status === 'menunggu' ? 'Jurnal diajukan, menunggu persetujuan.' : 'Draft disimpan.'
-      nav(`/jurnal?open=${r.id}&msg=${encodeURIComponent(msg)}`)
+      nav(`/jurnal?open=${r.id}&msg=${encodeURIComponent(msg)}&t=${Date.now()}`)
     } catch (e) {
       setErr(errorText(e))
       setBusy('')
     }
   }
 
-  if (loading) return <Spinner />
+  const close = () => nav('/jurnal')
+  const dirty = !busy && (!!keterangan.trim() || !!referensi.trim() || lines.some((l) => l.akun_id || l.debit || l.kredit || l.memo))
+
+  if (loading) return <Modal title="Memuat draft…" onClose={close}><Spinner /></Modal>
 
   return (
-    <>
-      <PageHead title={id ? 'Edit draft jurnal' : 'Jurnal baru'} sub="Jurnal yang sudah diposting tidak bisa diedit — koreksi dengan jurnal baru atau dibatalkan dengan alasan.">
-        <Link className="btn" to="/jurnal">Batal</Link>
-        <button className="btn" onClick={() => save(false)} disabled={!!busy || !keterangan}>{busy === 'draft' ? 'Menyimpan…' : 'Simpan draft'}</button>
-        <button className="btn primary" onClick={() => save(true)} disabled={!!busy || !balanced || !keterangan || !!locked}>
-          {busy === 'post' ? 'Memproses…' : needApproval ? 'Ajukan approval' : 'Posting'}
-        </button>
-      </PageHead>
+    <Modal
+      size="xl"
+      title={id ? 'Edit draft jurnal' : 'Jurnal baru'}
+      sub="Jurnal yang sudah diposting tidak bisa diedit — koreksi dengan jurnal baru atau dibatalkan dengan alasan."
+      onClose={close}
+      dirty={dirty}
+      footer={
+        <>
+          {blocker ? <span className="warn-text">⚠ {blocker}</span> : <span className="ok-text">✓ Siap diposting</span>}
+          <button className="btn" onClick={() => save(false)} disabled={!!busy}>{busy === 'draft' ? 'Menyimpan…' : 'Simpan draft'}</button>
+          <button className={`btn primary ${blocker ? 'soft' : ''}`} onClick={() => save(true)} disabled={!!busy}>
+            {busy === 'post' ? 'Memproses…' : needApproval ? 'Ajukan approval' : 'Posting'}
+          </button>
+        </>
+      }
+    >
       {note && <Banner kind="warn">{note}</Banner>}
-      <div className="card">
-        <div className="jf-head">
-          <label className="field"><span>Tanggal</span><input type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} /></label>
-          <label className="field"><span>Jenis</span>
-            <select value={jenis} onChange={(e) => setJenis(e.target.value)}>
-              {TYPES.map((t) => <option key={t.k} value={t.k}>{t.k} · {t.label}</option>)}
-            </select>
-          </label>
-          <label className="field grow"><span>Keterangan</span><input value={keterangan} onChange={(e) => setKet(e.target.value)} placeholder="mis. Penyesuaian sewa terpakai Oktober" /></label>
-          <label className="field"><span>Referensi</span><input value={referensi} onChange={(e) => setRef(e.target.value)} placeholder="no. bukti / memo" /></label>
-        </div>
-        <p className="muted small">{TYPES.find((t) => t.k === jenis)?.hint}{boot && ` · nomor dibuat otomatis saat posting`}</p>
-        {locked && <Banner kind="err">Periode {bulanID(tgl.slice(0, 7))} sedang dikunci. Draft tetap bisa disimpan, tapi posting butuh periode dibuka owner.</Banner>}
+      <div className="jf-head">
+        <label className="field"><span>Tanggal<Req /></span><input type="date" value={tgl} onChange={(e) => setTgl(e.target.value)} /></label>
+        <label className="field"><span>Jenis<Req /></span>
+          <select value={jenis} onChange={(e) => setJenis(e.target.value)}>
+            {TYPES.map((t) => <option key={t.k} value={t.k}>{t.k} · {t.label}</option>)}
+          </select>
+        </label>
+        <label className={`field grow ${!keterangan.trim() && filled.length >= 2 ? 'need' : ''}`}><span>Keterangan<Req /></span><input value={keterangan} onChange={(e) => setKet(e.target.value)} placeholder="mis. Setoran modal awal pemilik" /></label>
+        <label className="field"><span>Referensi</span><input value={referensi} onChange={(e) => setRef(e.target.value)} placeholder="no. bukti / memo" /></label>
       </div>
-
-      <div className="card flush">
+      <p className="hint">ⓘ {TYPES.find((t) => t.k === jenis)?.hint} · nomor jurnal dibuat otomatis saat posting</p>
+      {locked && <Banner kind="err">Periode {bulanID(tgl.slice(0, 7))} sedang dikunci. Draft tetap bisa disimpan, tapi posting butuh periode dibuka owner.</Banner>}
+      <div className="jf-box">
         <table className="tbl jf-lines">
           <thead>
-            <tr><th className="n">#</th><th>Akun</th><th>Memo baris</th><th className="r">Debit</th><th className="r">Kredit</th><th className="n"></th></tr>
+            <tr><th className="n">#</th><th>Akun<Req /></th><th>Memo baris</th><th className="r">Debit</th><th className="r">Kredit</th><th className="n"></th></tr>
           </thead>
           <tbody>
             {lines.map((l, i) => (
               <tr key={i}>
-                <td className="n muted">{i + 1}</td>
+                <td className="n">{i + 1}</td>
                 <td className="acc"><AccountPicker value={l.akun_id} onChange={(k) => setLine(i, { akun_id: k })} /></td>
                 <td><input value={l.memo} onChange={(e) => setLine(i, { memo: e.target.value })} placeholder="opsional" /></td>
                 <td className="num"><input inputMode="decimal" value={l.debit} onFocus={() => fillBalance(i, 'debit')}
@@ -157,10 +176,10 @@ export function JournalFormPage() {
           {jenis === 'JP' && (
             <label className="check"><input type="checkbox" checked={balik} onChange={(e) => setBalik(e.target.checked)} /> Buat jurnal pembalik otomatis tanggal 1 bulan berikutnya</label>
           )}
-          <span className="muted small">Tip: setelah memilih akun, klik kolom debit/kredit yang kosong untuk mengisi selisihnya otomatis.</span>
+          <span className="hint">Tip: setelah memilih akun, klik kolom debit/kredit yang kosong untuk mengisi selisihnya otomatis.</span>
         </div>
       </div>
       <Banner kind="err">{err}</Banner>
-    </>
+    </Modal>
   )
 }

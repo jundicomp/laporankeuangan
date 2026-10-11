@@ -1,7 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { call, callTimed, errorText, getApiUrl, setApiUrl } from '../api/client'
 import { useSession, type Module } from '../auth/session'
-import { Banner, Field, PageHead } from '../components/ui'
+import { Banner, Field, Modal, PageHead } from '../components/ui'
 
 const GROUPS: { title: string; kode: string[] }[] = [
   { title: 'Inti — selalu aktif', kode: ['akuntansi', 'kasbank', 'laporan', 'akses', 'backup'] },
@@ -81,7 +81,7 @@ function ModulesTab() {
 
   return (
     <>
-      <p className="muted">Modul inti menjaga buku tetap seimbang dan bisa diaudit, jadi selalu aktif. Modul lain bisa dinyalakan atau dimatikan kapan saja — data lama tidak pernah dihapus.</p>
+      <p className="hint">ⓘ Modul inti menjaga buku tetap seimbang dan bisa diaudit, jadi selalu aktif. Modul lain bisa dinyalakan atau dimatikan kapan saja — data lama tidak pernah dihapus.</p>
       {msg && <Banner kind={msg.kind}>{msg.text}</Banner>}
       <div className="mod-grid">
         {GROUPS.map((g) => (
@@ -98,24 +98,20 @@ function ModulesTab() {
         ))}
       </div>
       {pending && (
-        <div className="modal-bg" onClick={() => setPending(null)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h3>{pending.target.aktif ? 'Nonaktifkan' : 'Aktifkan'} "{pending.target.nama}"?</h3>
-            <ul>
-              {pending.changes.filter((c) => c.kode !== pending.target.kode).map((c) => (
-                <li key={c.kode}>Ikut {c.aktif ? 'aktif' : 'nonaktif'}: <b>{c.nama}</b></li>
-              ))}
-              {pending.target.aktif && <li>Menu terkait disembunyikan, <b>data yang sudah ada tidak dihapus</b>.</li>}
-              {pending.target.aktif && <li>Bisa diaktifkan kembali kapan saja.</li>}
-            </ul>
-            <div className="row end">
-              <button className="btn" onClick={() => setPending(null)}>Batal</button>
-              <button className={`btn ${pending.target.aktif ? 'warn' : 'primary'}`} onClick={() => commit(pending.target)} disabled={!!busy}>
-                {pending.target.aktif ? 'Nonaktifkan' : 'Aktifkan'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <Modal
+          size="sm"
+          title={`${pending.target.aktif ? 'Nonaktifkan' : 'Aktifkan'} "${pending.target.nama}"?`}
+          onClose={() => setPending(null)}
+          footer={<><button className="btn" onClick={() => setPending(null)}>Batal</button><button className={`btn ${pending.target.aktif ? 'danger' : 'primary'}`} onClick={() => commit(pending.target)} disabled={!!busy}>{busy ? 'Memproses…' : pending.target.aktif ? 'Nonaktifkan' : 'Aktifkan'}</button></>}
+        >
+          <ul className="plain-list">
+            {pending.changes.filter((c) => c.kode !== pending.target.kode).map((c) => (
+              <li key={c.kode} className="warn-text">⚠ Ikut {c.aktif ? 'aktif' : 'nonaktif'}: <b>{c.nama}</b></li>
+            ))}
+            {pending.target.aktif && <li>Menu terkait disembunyikan, <b>data yang sudah ada tidak dihapus</b>.</li>}
+            {pending.target.aktif && <li>Bisa diaktifkan kembali kapan saja.</li>}
+          </ul>
+        </Modal>
       )}
     </>
   )
@@ -124,42 +120,56 @@ function ModulesTab() {
 function CompanyTab() {
   const { boot, can, reload } = useSession()
   const c = boot?.company ?? {}
-  const [f, setF] = useState({ nama: c.nama ?? '', npwp: c.npwp ?? '', alamat: c.alamat ?? '', telepon: c.telepon ?? '', email: c.email ?? '' })
-  const [msg, setMsg] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null)
-  const [busy, setBusy] = useState(false)
-  const editable = can('setting.edit')
-  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
+  const [open, setOpen] = useState(false)
+  const [flash, setFlash] = useState('')
+  const rows: [string, string][] = [
+    ['Nama perusahaan', c.nama], ['NPWP', c.npwp], ['Alamat', c.alamat], ['Telepon', c.telepon], ['Email', c.email],
+    ['Kerangka laporan', c.kerangka_sak || 'SAK EP'], ['Metode HPP', c.metode_hpp || 'rata-rata'],
+  ]
+  return (
+    <div className="card stack narrow">
+      {flash && <Banner kind="ok">{flash}</Banner>}
+      <table className="tbl kv"><tbody>{rows.map(([k, v]) => <tr key={k}><td>{k}</td><td>{v || <span className="warn-text">belum diisi</span>}</td></tr>)}</tbody></table>
+      {can('setting.edit') && <div><button className="btn primary" onClick={() => { setFlash(''); setOpen(true) }}>Ubah profil perusahaan</button></div>}
+      {open && <CompanyForm initial={c} onClose={() => setOpen(false)} onSaved={async () => { await reload(); setOpen(false); setFlash('Profil perusahaan disimpan.') }} />}
+    </div>
+  )
+}
 
-  const save = async (e: FormEvent) => {
-    e.preventDefault()
+function CompanyForm({ initial, onClose, onSaved }: { initial: Record<string, string>; onClose: () => void; onSaved: () => Promise<void> }) {
+  const start = { nama: initial.nama ?? '', npwp: initial.npwp ?? '', alamat: initial.alamat ?? '', telepon: initial.telepon ?? '', email: initial.email ?? '' }
+  const [f, setF] = useState(start)
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
+  const save = async (e?: FormEvent) => {
+    e?.preventDefault()
+    if (!f.nama.trim()) return setErr('Nama perusahaan wajib diisi.')
     setBusy(true)
-    setMsg(null)
+    setErr('')
     try {
       await call('company.update', f)
-      await reload()
-      setMsg({ kind: 'ok', text: 'Profil perusahaan disimpan.' })
+      await onSaved()
     } catch (e2) {
-      setMsg({ kind: 'err', text: errorText(e2) })
+      setErr(errorText(e2))
+      setBusy(false)
     }
-    setBusy(false)
   }
-
   return (
-    <form className="card stack narrow" onSubmit={save}>
-      <Field label="Nama perusahaan" value={f.nama} onChange={set('nama')} required disabled={!editable} />
-      <div className="grid2">
-        <Field label="NPWP" value={f.npwp} onChange={set('npwp')} disabled={!editable} />
-        <Field label="Telepon" value={f.telepon} onChange={set('telepon')} disabled={!editable} />
-      </div>
-      <Field label="Alamat" value={f.alamat} onChange={set('alamat')} disabled={!editable} />
-      <Field label="Email" type="email" value={f.email} onChange={set('email')} disabled={!editable} />
-      <div className="grid2">
-        <Field label="Kerangka laporan" value={c.kerangka_sak ?? 'SAK EP'} disabled hint="Pilihan SAK EMKM / SAK EP / PSAK menyusul di Langkah 3" />
-        <Field label="Metode HPP" value={c.metode_hpp ?? 'rata-rata'} disabled />
-      </div>
-      {msg && <Banner kind={msg.kind}>{msg.text}</Banner>}
-      {editable && <button className="btn primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button>}
-    </form>
+    <Modal title="Ubah profil perusahaan" onClose={onClose} dirty={!busy && JSON.stringify(f) !== JSON.stringify(start)}
+      footer={<><button className="btn" onClick={onClose}>Batal</button><button type="submit" form="company-form" className="btn primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button></>}>
+      <form id="company-form" className="stack" onSubmit={save}>
+        <Field label="Nama perusahaan" value={f.nama} onChange={set('nama')} required />
+        <div className="grid2">
+          <Field label="NPWP" value={f.npwp} onChange={set('npwp')} />
+          <Field label="Telepon" value={f.telepon} onChange={set('telepon')} />
+        </div>
+        <Field label="Alamat" value={f.alamat} onChange={set('alamat')} />
+        <Field label="Email" type="email" value={f.email} onChange={set('email')} />
+        <p className="hint">ⓘ Pilihan kerangka laporan (SAK EMKM / SAK EP / PSAK) dan metode HPP menyusul bersama modul laporan.</p>
+        <Banner kind="err">{err}</Banner>
+      </form>
+    </Modal>
   )
 }
 
@@ -170,6 +180,7 @@ function DiagTab() {
   const [info, setInfo] = useState<Info | null>(null)
   const [ping, setPing] = useState('')
   const [err, setErr] = useState('')
+  const [editUrl, setEditUrl] = useState(false)
 
   const run = async () => {
     setErr('')
@@ -190,20 +201,27 @@ function DiagTab() {
 
   return (
     <div className="card stack narrow">
-      <Field label="URL server (Apps Script /exec)" value={url} onChange={(e) => setUrl(e.target.value)} hint="Disimpan di browser ini. Default diambil dari variabel VITE_API_URL di GitHub." />
-      <div className="row">
-        <button className="btn" onClick={() => { setApiUrl(url); location.reload() }}>Simpan & muat ulang</button>
-        <button className="btn" onClick={run}>Uji ulang</button>
-      </div>
-      <Banner kind="err">{err}</Banner>
       <table className="tbl kv">
         <tbody>
+          <tr><td>URL server</td><td className="mono break">{getApiUrl() || '—'}</td></tr>
           <tr><td>Kecepatan server</td><td>{ping || '—'}</td></tr>
           <tr><td>Spreadsheet</td><td>{info ? <a href={info.spreadsheetUrl} target="_blank" rel="noreferrer">{info.spreadsheetName} ↗</a> : '—'}</td></tr>
           <tr><td>Versi skema</td><td>{info?.schemaVersion ?? '—'}</td></tr>
           <tr><td>Jumlah tab</td><td>{info?.sheets.length ?? '—'}</td></tr>
         </tbody>
       </table>
+      <Banner kind="err">{err}</Banner>
+      <div className="row">
+        <button className="btn" onClick={run}>Uji ulang</button>
+        <button className="btn" onClick={() => { setUrl(getApiUrl()); setEditUrl(true) }}>Ganti URL server</button>
+      </div>
+      {editUrl && (
+        <Modal size="sm" title="Ganti URL server" onClose={() => setEditUrl(false)} dirty={url !== getApiUrl()}
+          footer={<><button className="btn" onClick={() => setEditUrl(false)}>Batal</button><button className="btn primary" disabled={!url.trim()} onClick={() => { setApiUrl(url); location.reload() }}>Simpan & muat ulang</button></>}>
+          <Field label="URL Web App Apps Script (/exec)" value={url} onChange={(e) => setUrl(e.target.value)} required hint="Disimpan di browser ini saja. Default diambil dari variabel VITE_API_URL di GitHub." />
+          <p className="warn-text">⚠ URL yang salah membuat aplikasi tidak bisa terhubung sampai diperbaiki.</p>
+        </Modal>
+      )}
     </div>
   )
 }

@@ -47,8 +47,8 @@ function Gate() {
     <Routes>
       <Route element={<Layout />}>
         {NAV.map((n) => <Route key={n.path} path={n.path} element={<Guard item={n} />} />)}
-        <Route path="/jurnal/baru" element={<Guard item={JOURNAL_FORM} page={<JournalFormPage />} />} />
-        <Route path="/jurnal/:id" element={<Guard item={JOURNAL_FORM} page={<JournalFormPage />} />} />
+        <Route path="/jurnal/baru" element={<Guard item={JOURNAL_FORM} page={<><JournalPage /><JournalFormPage /></>} />} />
+        <Route path="/jurnal/:id" element={<Guard item={JOURNAL_FORM} page={<><JournalPage /><JournalFormPage /></>} />} />
         <Route path="/profil" element={<ProfilePage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
