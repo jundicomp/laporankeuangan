@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+.env.local
+apps-script/.clasp.json
+.clasprc.json
+*.tsbuildinfo
