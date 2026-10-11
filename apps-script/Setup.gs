@@ -6,7 +6,7 @@
  *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.2.0';
+const SCHEMA_VERSION = '0.3.0';
 
 const SCHEMA = {
   // ---- master
@@ -32,7 +32,8 @@ const SCHEMA = {
   T_Payroll: ['periode', 'karyawan_id', 'komponen_json', 'bruto', 'pph21', 'neto', 'status', 'jurnal_id'],
   T_Penagihan: ['dok_id', 'tgl', 'via', 'catatan', 'oleh'],
   // ---- akuntansi
-  T_Jurnal: ['id', 'no', 'tgl', 'jenis', 'ref_dok', 'cabang_id', 'keterangan', 'status', 'balik_otomatis', 'dibuat_oleh', 'dibuat_pada', 'diposting_oleh', 'diposting_pada'],
+  T_Jurnal: ['id', 'no', 'tgl', 'jenis', 'ref_dok', 'cabang_id', 'keterangan', 'status', 'balik_otomatis', 'dibuat_oleh', 'dibuat_pada', 'diposting_oleh', 'diposting_pada',
+    'referensi', 'total', 'jurnal_asal', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada'],
   T_JurnalDetail: ['jurnal_id', 'baris', 'akun_id', 'memo', 'divisi', 'proyek', 'debit', 'kredit'],
   SYS_Periode: ['periode', 'status', 'diubah_oleh', 'diubah_pada', 'alasan'],
   R_SaldoAkun: ['periode', 'akun_id', 'debit', 'kredit'],
@@ -191,7 +192,7 @@ function seed_(ss) {
     if (!rows.length) return;
     ss.getSheetByName(name).getRange(2, 1, rows.length, rows[0].length).setValues(rows);
   };
-  put('M_Akun', COA.map(function (a) { return a.concat([true]); }));
+  put('M_Akun', COA.map(function (a) { return [asText_(a[0]), a[1], a[2], a[3], asText_(a[4]), a[5], true]; }));
   const now = new Date();
   put('SYS_Modul', MODULES.map(function (m) { return m.concat(['setup', now]); }));
   put('SYS_Setting', [
@@ -202,12 +203,12 @@ function seed_(ss) {
   ]);
   put('M_Perusahaan', [['MB01', 'Perusahaan Saya', '', '', '', '', '', '[]', 'IDR', 'rata-rata', 'SAK EP', 1]]);
   put('M_KasBank', [
-    ['KB-KAS', 'Kas', 'kas', '', '1-1101', true],
-    ['KB-BANK1', 'Bank — rekening utama', 'bank', '', '1-1102', true],
+    ['KB-KAS', 'Kas', 'kas', '', asText_('1-1101'), true],
+    ['KB-BANK1', 'Bank — rekening utama', 'bank', '', asText_('1-1102'), true],
   ]);
   const y = now.getFullYear();
   const periods = [];
-  for (var m = 1; m <= 12; m++) periods.push([y + '-' + ('0' + m).slice(-2), 'buka', 'setup', now, '']);
+  for (var m = 1; m <= 12; m++) periods.push([asText_(y + '-' + ('0' + m).slice(-2)), 'buka', 'setup', now, '']);
   put('SYS_Periode', periods);
 }
 
@@ -290,6 +291,7 @@ function upgradeSchema() {
       log.push('+ kolom ' + name + ': ' + missing.join(', '));
     }
   });
+  fixLegacyText_(ss, log);
   Object.keys(CACHED_TABLES).forEach(invalidate_);
   const roles = ensureRoles_();
   if (roles) log.push('+ ' + roles + ' peran bawaan');
@@ -301,6 +303,8 @@ function upgradeSchema() {
     if (sv[i][0] === 'schema_version') { settings.getRange(i + 1, 2).setValue(SCHEMA_VERSION); found = true; }
   }
   if (!found) settings.appendRow(['schema_version', SCHEMA_VERSION]);
+  const keys = sv.map(function (r) { return r[0]; });
+  if (keys.indexOf('format_nomor_jurnal') < 0) settings.appendRow(['format_nomor_jurnal', '{JENIS}/{YYYY}/{MM}/{####}']);
   invalidate_('SYS_Setting');
 
   const props = PropertiesService.getScriptProperties();
@@ -313,4 +317,48 @@ function upgradeSchema() {
     log.push('KODE SETUP OWNER: ' + code + '  ← masukkan di halaman "Buat akun owner"');
   }
   Logger.log('upgradeSchema ' + SCHEMA_VERSION + ' selesai.\n' + (log.length ? log.join('\n') : 'Tidak ada perubahan.'));
+}
+
+/**
+ * Perbaikan data versi awal: Sheets sempat mengubah kode akun ("1-1101") dan periode ("2026-01")
+ * menjadi tanggal. Kembalikan ke teks. Aman diulang.
+ */
+function fixLegacyText_(ss, log) {
+  // M_Akun: kode & parent
+  const akun = ss.getSheetByName('M_Akun');
+  const av = akun.getDataRange().getValues();
+  const ah = av[0].map(String);
+  const ik = ah.indexOf('kode');
+  const ip = ah.indexOf('parent');
+  var fixed = 0;
+  for (var i = 1; i < av.length; i++) {
+    const broken = av[i][ik] instanceof Date || av[i][ip] instanceof Date;
+    if (!broken) continue;
+    const seed = COA[i - 1];
+    if (!seed) continue;
+    akun.getRange(i + 1, ik + 1).setValue(asText_(seed[0]));
+    akun.getRange(i + 1, ip + 1).setValue(asText_(seed[4]));
+    fixed++;
+  }
+  if (fixed) log.push('~ ' + fixed + ' kode akun dikembalikan ke teks');
+  // M_KasBank: akun_id bawaan
+  const kb = ss.getSheetByName('M_KasBank');
+  const kv = kb.getDataRange().getValues();
+  const kh = kv[0].map(String);
+  const seedKb = { 'KB-KAS': '1-1101', 'KB-BANK1': '1-1102' };
+  for (var j = 1; j < kv.length; j++) {
+    const col = kh.indexOf('akun_id');
+    if (kv[j][col] instanceof Date && seedKb[kv[j][0]]) kb.getRange(j + 1, col + 1).setValue(asText_(seedKb[kv[j][0]]));
+  }
+  // SYS_Periode: kolom periode
+  const per = ss.getSheetByName('SYS_Periode');
+  const pv = per.getDataRange().getValues();
+  var pf = 0;
+  for (var k = 1; k < pv.length; k++) {
+    if (pv[k][0] instanceof Date) {
+      per.getRange(k + 1, 1).setValue(asText_(Utilities.formatDate(pv[k][0], ss.getSpreadsheetTimeZone(), 'yyyy-MM')));
+      pf++;
+    }
+  }
+  if (pf) log.push('~ ' + pf + ' periode dikembalikan ke teks');
 }

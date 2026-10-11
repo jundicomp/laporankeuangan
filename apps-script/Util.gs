@@ -14,6 +14,7 @@ function json_(obj) {
 
 var SS_ = null;
 var HEAD_ = {};
+var MEMO_ = {}; // salinan tab yang sudah dibaca dalam request ini
 
 /** ID spreadsheet disimpan di Script Properties oleh setupTemplate(). Dibuka sekali per request. */
 function getSpreadsheet_() {
@@ -58,6 +59,13 @@ function rowToObj_(head, r) {
 
 /** Baca satu tab menjadi array objek. Sekali getValues per tab — jangan per sel. */
 function readTable_(name) {
+  if (MEMO_[name]) return MEMO_[name].map(function (o) { return Object.assign({}, o); });
+  const rows = readTableRaw_(name);
+  MEMO_[name] = rows;
+  return rows.map(function (o) { return Object.assign({}, o); });
+}
+
+function readTableRaw_(name) {
   const cached = CACHED_TABLES[name];
   if (cached) {
     const hit = CacheService.getScriptCache().get(cacheKey_(name));
@@ -78,7 +86,17 @@ function readTable_(name) {
 }
 
 function invalidate_(name) {
+  delete MEMO_[name];
   if (CACHED_TABLES[name]) CacheService.getScriptCache().remove(cacheKey_(name));
+}
+
+/**
+ * Google Sheets mengubah teks seperti "1-1101", "2026-10", atau "12/2025" menjadi tanggal.
+ * Awalan apostrof menyimpannya sebagai teks apa adanya (apostrofnya tidak ikut tersimpan).
+ */
+function asText_(s) {
+  if (s === '' || s === null || s === undefined) return '';
+  return "'" + s;
 }
 
 function objToRow_(head, o) {
@@ -184,6 +202,7 @@ function nextNumber_(jenis, cabang, tahun) {
     if (values[i][0] === jenis && String(values[i][1]) === String(cabang) && Number(values[i][2]) === Number(tahun)) {
       const n = Number(values[i][3]) + 1;
       sh.getRange(i + 1, 4).setValue(n);
+      invalidate_('SYS_Counter');
       return n;
     }
   }

@@ -41,9 +41,10 @@ function actionBootstrap_(p, ctx) {
     modules: readTable_('SYS_Modul').map(function (m) {
       return { kode: m.kode, nama: m.nama, aktif: bool_(m.aktif), wajib: bool_(m.wajib), bergantung_pada: m.bergantung_pada || '' };
     }),
-    coa: readTable_('M_Akun'),
+    coa: readTable_('M_Akun').map(function (a) { a.kode = String(a.kode); a.parent = String(a.parent || ''); a.is_header = bool_(a.is_header); a.aktif = bool_(a.aktif); return a; }),
     kasbank: readTable_('M_KasBank'),
-    periods: readTable_('SYS_Periode'),
+    periods: periodRows_(),
+    journalTypes: JOURNAL_TYPES,
     serverTime: new Date().toISOString(),
   };
 }

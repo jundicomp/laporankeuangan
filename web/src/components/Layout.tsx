@@ -35,7 +35,7 @@ export default function Layout() {
     return { n, showGroup: showGroup ? src : '' }
   })
 
-  const current = NAV.find((n) => n.path === loc.pathname)
+  const current = NAV.find((n) => n.path === loc.pathname) ?? NAV.find((n) => n.path !== '/' && loc.pathname.startsWith(n.path + '/'))
   const initials = (boot?.user.nama ?? '?').split(' ').map((w) => w[0]).slice(0, 2).join('').toUpperCase()
 
   return (
@@ -50,7 +50,7 @@ export default function Layout() {
           {rows.map(({ n, showGroup }) => (
             <div key={n.path}>
               {showGroup && <div className="side-grp">{showGroup}</div>}
-              <NavLink to={n.path} end className={({ isActive }) => `side-it ${isActive ? 'on' : ''}`}>
+              <NavLink to={n.path} end={n.path === '/'} className={({ isActive }) => `side-it ${isActive ? 'on' : ''}`}>
                 <span className="ic">{n.icon}</span>
                 {n.label}
                 {n.step && <span className="soon" title={`Dibangun di ${n.step}`}>•</span>}

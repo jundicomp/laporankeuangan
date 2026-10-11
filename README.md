@@ -3,7 +3,7 @@
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
 - Web: https://jundicomp.github.io/laporankeuangan/
-- Status: **Langkah 1 selesai** — login, akun owner, peran & hak akses, pengguna, audit log, aktivasi modul, profil.
+- Status: **Langkah 2 selesai** — chart of accounts, jurnal umum/penyesuaian/saldo awal, approval, pembatalan dengan jejak, pembalik otomatis, buku besar, neraca saldo, kunci periode. (Langkah 1: login, peran & akses, pengguna, audit log, aktivasi modul.)
 
 ```
 laporankeuangan/
@@ -14,7 +14,8 @@ laporankeuangan/
 │  ├─ Util.gs                     akses sheet + cache, lock, ID, audit, penomoran
 │  ├─ Setup.gs                    skema tab, COA, modul, peran & izin, setupTemplate(), upgradeSchema()
 │  ├─ Auth.gs                     owner pertama, login, sesi, ganti password/username
-│  └─ Admin.gs                    bootstrap, pengguna, peran, modul, perusahaan, audit
+│  ├─ Admin.gs                    bootstrap, pengguna, peran, modul, perusahaan, audit
+│  └─ Ledger.gs                   postJournal_ (satu pintu jurnal), buku besar, neraca saldo, COA, periode
 └─ web/src/
    ├─ api/client.ts               panggilan API + token + batch
    ├─ auth/session.tsx            status login & data bootstrap
@@ -24,6 +25,16 @@ laporankeuangan/
 ```
 
 ---
+
+## Update ke Langkah 2 (dari Langkah 1)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Util`, `Setup`, `Admin` dengan versi baru (`Auth` tidak berubah, tapi aman ditimpa juga).
+2. Tambah file baru: **+ → Skrip** → `Ledger`, tempel isi `Ledger.gs`.
+3. Simpan, jalankan **upgradeSchema**. Log akan menampilkan kolom baru di `T_Jurnal` dan, bila ada, perbaikan kode akun/periode yang sempat diubah Google Sheets menjadi tanggal.
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+
+Setelah itu: menu **Jurnal & Buku Besar** dan **Tutup Buku** aktif. Mulai dengan jurnal jenis **SA · Saldo awal** per tanggal mulai pembukuan.
 
 ## Update ke Langkah 1 (dari Langkah 0)
 
@@ -96,6 +107,16 @@ Buka web-nya → muncul halaman **Buat akun owner** → isi kode setup, nama per
 
 Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & Payroll · Auditor. Matriks izinnya bisa dilihat di menu **Pengguna & Akses → Peran & izin**.
 
-## Berikutnya: Langkah 2
+## Aturan akuntansi yang ditegakkan server
 
-Chart of accounts, form jurnal umum, buku besar, neraca saldo, kunci periode — dengan `ledger.post()` sebagai satu-satunya pintu masuk jurnal.
+- Semua jurnal posted lewat satu fungsi `postJournal_` — debit = kredit, minimal 2 baris, akun harus detail & aktif, tanggal di periode terbuka.
+- Jurnal posted tidak bisa diedit atau dihapus. Pembatalan membuat jurnal pembalik (JR) bertanggal sama + alasan wajib; jurnal asal tetap terlihat berstatus *Dibatalkan*.
+- Nomor jurnal otomatis per jenis per tahun: `JU/2026/10/0001`. Draft belum punya nomor.
+- Jurnal penyesuaian bisa diberi pembalik otomatis tanggal 1 bulan berikutnya.
+- Bila modul **Approval bertingkat** aktif, pengguna tanpa izin *setujui jurnal* hanya bisa mengajukan; pembuat tidak boleh menyetujui jurnalnya sendiri.
+- Periode yang dikunci menolak posting & pembatalan. Membuka kembali hanya owner, wajib alasan.
+- Akun yang sudah dipakai tidak bisa diubah saldo normalnya atau dijadikan header; nonaktif hanya bila saldonya nol.
+
+## Berikutnya: Langkah 3
+
+Kas & bank (pemasukan, pengeluaran, transfer), master data (pelanggan, supplier, produk), laporan laba rugi & posisi keuangan, impor saldo awal dari Excel, backup harian.

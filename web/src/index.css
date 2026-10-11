@@ -171,3 +171,62 @@ td > .pill:first-child { margin-left: 0; }
   .content { padding: 16px; }
   .topbar { padding: 0 16px; }
 }
+
+/* ---------- Langkah 2: jurnal, buku besar, neraca saldo, COA, periode ---------- */
+.tbl .r { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tbl .n { width: 34px; text-align: center; }
+.tbl tfoot td { font-weight: 700; background: #fafbfc; border-top: 1px solid var(--ink); border-bottom: 0; }
+.tbl tr.sub td { background: #f7f9fa; font-weight: 600; }
+.tbl.compact td, .tbl.compact th { padding: 7px 10px; }
+.tbl td.indent { padding-left: 28px; }
+.tbl tr.hdr td { font-weight: 700; background: #fafbfc; }
+.tbl tr.off td { color: var(--mute); }
+.tbl .tot { font-weight: 700; }
+a.plain { color: inherit; text-decoration: none; }
+a.plain:hover { color: var(--brand); }
+.err-text { color: var(--red); }
+.pad { padding: 12px 14px; }
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.filters input, .filters select { width: auto; }
+.filters .grow { flex: 1; min-width: 200px; }
+.filters.pad { border-bottom: 1px solid var(--line); }
+.inline { display: flex; align-items: center; gap: 8px; font-size: 13px; color: #4a5462; }
+.check { display: flex; align-items: center; gap: 8px; font-size: 13px; cursor: pointer; }
+.check input { width: auto; }
+button.link { border: 0; background: none; color: var(--brand); font: inherit; font-weight: 600; cursor: pointer; padding: 0; }
+.report-head { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 12px 14px; border-bottom: 1px solid var(--line); }
+.report-head .pill { margin-left: auto; }
+.meta { line-height: 1.6; }
+
+.acc-picker { position: relative; }
+.acc-list { position: absolute; z-index: 15; left: 0; right: 0; top: calc(100% + 4px); min-width: 300px; max-height: 280px; overflow-y: auto;
+  background: #fff; border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 28px rgba(0,0,0,.12); list-style: none; margin: 0; padding: 4px; }
+.acc-list li { padding: 7px 9px; border-radius: 6px; cursor: pointer; display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
+.acc-list li small { margin-left: auto; color: var(--mute); font-size: 11px; }
+.acc-list li.hi { background: var(--brandsoft); }
+.acc-list li.none { color: var(--mute); cursor: default; }
+
+.jf-head { display: grid; grid-template-columns: 160px 200px 1fr 200px; gap: 12px; }
+.jf-head .grow { min-width: 0; }
+.jf-lines td { padding: 6px 8px; vertical-align: middle; }
+.jf-lines td input { padding: 7px 9px; }
+.jf-lines td.acc { width: 36%; }
+.jf-lines td.num { width: 15%; }
+.jf-lines td.num input { text-align: right; font-variant-numeric: tabular-nums; }
+.jf-lines tfoot td { padding: 10px 8px; }
+.jf-foot { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 12px 14px; border-top: 1px solid var(--line); }
+.jf-foot .pill { margin-left: 0; }
+
+.year { font-size: 16px; min-width: 48px; text-align: center; }
+.period-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; }
+.period { display: flex; flex-direction: column; gap: 6px; }
+.period.locked { background: #f7f9fa; }
+.period-top { display: flex; justify-content: space-between; align-items: center; }
+.period .row { margin-top: auto; padding-top: 4px; }
+.checklist { margin: 8px 0; padding-left: 20px; line-height: 1.8; }
+
+@media (max-width: 860px) {
+  .jf-head { grid-template-columns: 1fr 1fr; }
+  .jf-head .grow { grid-column: span 2; }
+  .jf-lines { display: block; overflow-x: auto; }
+}

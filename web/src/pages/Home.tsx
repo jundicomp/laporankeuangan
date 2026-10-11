@@ -6,7 +6,7 @@ import type { NavItem } from '../nav'
 
 const ROADMAP = [
   { step: 'Langkah 1', title: 'Login, peran & hak akses, audit log, aktivasi modul', done: true },
-  { step: 'Langkah 2', title: 'Chart of accounts, form jurnal umum, buku besar, neraca saldo, kunci periode' },
+  { step: 'Langkah 2', title: 'Chart of accounts, form jurnal umum, buku besar, neraca saldo, kunci periode', done: true },
   { step: 'Langkah 3', title: 'Kas & bank, master data, laba rugi & posisi keuangan, impor saldo awal, backup' },
   { step: 'Langkah 4', title: 'Invoice + PDF, piutang, dashboard — MVP selesai' },
 ]

@@ -10,7 +10,8 @@ export type Boot = {
   modules: Module[]
   coa: Record<string, unknown>[]
   kasbank: Record<string, unknown>[]
-  periods: Record<string, unknown>[]
+  periods: { periode: string; status: string; diubah_oleh: string; diubah_pada: string; alasan: string }[]
+  journalTypes: Record<string, string>
   serverTime: string
 }
 
