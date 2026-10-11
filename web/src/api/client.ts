@@ -1,64 +1,114 @@
 /**
  * Klien API ke Apps Script Web App.
  *
- * Penting: body dikirim sebagai text/plain, BUKAN application/json.
- * Apps Script tidak bisa menjawab preflight (OPTIONS), jadi request harus
- * berupa "simple request" CORS. Isinya tetap JSON, dibaca server via
- * e.postData.contents.
+ * Body dikirim sebagai text/plain (bukan application/json) supaya browser tidak
+ * mengirim preflight CORS — Apps Script tidak bisa menjawab OPTIONS.
+ * Token sesi ikut di body, bukan header, dengan alasan yang sama.
  */
 
-export type ApiOk<T> = { ok: true; data: T; ms: number }
-export type ApiErr = { ok: false; error: { code: string; message: string }; ms: number }
-export type ApiResult<T> = ApiOk<T> | ApiErr
+export type ApiErrorBody = { code: string; message: string }
+type Envelope<T> = { ok: true; data: T; ms: number } | { ok: false; error: ApiErrorBody; ms: number }
 
-const STORAGE_KEY = 'neraca.apiUrl'
+const URL_KEY = 'neraca.apiUrl'
+const TOKEN_KEY = 'neraca.token'
 
-export function getApiUrl(): string {
+let token: string | null = null
+let onAuthLost: (() => void) | null = null
+
+function safeGet(store: Storage, k: string) {
   try {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) return saved
+    return store.getItem(k)
   } catch {
-    /* storage bisa diblokir — pakai env */
+    return null
   }
-  return import.meta.env.VITE_API_URL ?? ''
+}
+function safeSet(store: Storage, k: string, v: string | null) {
+  try {
+    if (v === null) store.removeItem(k)
+    else store.setItem(k, v)
+  } catch {
+    /* storage diblokir — tetap jalan di memori */
+  }
 }
 
+export function getApiUrl(): string {
+  return safeGet(localStorage, URL_KEY) || import.meta.env.VITE_API_URL || ''
+}
 export function setApiUrl(url: string) {
-  try {
-    localStorage.setItem(STORAGE_KEY, url.trim())
-  } catch {
-    /* abaikan */
-  }
+  safeSet(localStorage, URL_KEY, url.trim() || null)
+}
+
+/** Token disimpan di sessionStorage: hilang saat tab ditutup, tidak dibagi antar tab. */
+export function getToken() {
+  if (token === null) token = safeGet(sessionStorage, TOKEN_KEY)
+  return token
+}
+export function setToken(t: string | null) {
+  token = t
+  safeSet(sessionStorage, TOKEN_KEY, t)
+}
+export function setAuthLostHandler(fn: () => void) {
+  onAuthLost = fn
 }
 
 export class ApiError extends Error {
-  constructor(public code: string, message: string) {
+  code: string
+  constructor(code: string, message: string) {
     super(message)
+    this.code = code
   }
 }
 
-export async function call<T>(action: string, payload: Record<string, unknown> = {}): Promise<{ data: T; serverMs: number; totalMs: number }> {
+const AUTH_LOST = new Set(['UNAUTHENTICATED', 'SESSION_EXPIRED'])
+
+async function send<T>(body: object): Promise<{ data: T; serverMs: number; totalMs: number }> {
   const url = getApiUrl()
-  if (!url) throw new ApiError('NO_URL', 'URL Apps Script belum diisi.')
+  if (!url) throw new ApiError('NO_URL', 'URL server belum diatur.')
   const t0 = performance.now()
   let res: Response
   try {
     res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ action, payload }),
+      body: JSON.stringify({ ...body, token: getToken() ?? '' }),
       redirect: 'follow',
     })
   } catch {
-    throw new ApiError('NETWORK', 'Tidak bisa menghubungi server. Cek URL /exec dan akses Web App ("Anyone").')
+    throw new ApiError('NETWORK', 'Tidak bisa menghubungi server. Periksa koneksi internet.')
   }
   const totalMs = Math.round(performance.now() - t0)
-  let body: ApiResult<T>
+  let env: Envelope<T>
   try {
-    body = await res.json()
+    env = await res.json()
   } catch {
-    throw new ApiError('BAD_RESPONSE', `Respons bukan JSON (HTTP ${res.status}). Biasanya karena URL salah atau Web App belum di-deploy ulang.`)
+    throw new ApiError('BAD_RESPONSE', `Respons server tidak terbaca (HTTP ${res.status}). Pastikan URL berakhiran /exec dan Web App sudah di-deploy ulang.`)
   }
-  if (!body.ok) throw new ApiError(body.error.code, body.error.message)
-  return { data: body.data, serverMs: body.ms, totalMs }
+  if (!env.ok) {
+    if (AUTH_LOST.has(env.error.code)) onAuthLost?.()
+    throw new ApiError(env.error.code, env.error.message)
+  }
+  return { data: env.data, serverMs: env.ms, totalMs }
+}
+
+/** Panggil satu aksi. */
+export async function call<T>(action: string, payload: Record<string, unknown> = {}): Promise<T> {
+  return (await send<T>({ action, payload })).data
+}
+
+/** Panggil satu aksi dan kembalikan juga waktu tempuh (untuk halaman diagnostik). */
+export function callTimed<T>(action: string, payload: Record<string, unknown> = {}) {
+  return send<T>({ action, payload })
+}
+
+export type BatchResult = { ok: true; data: unknown } | { ok: false; error: ApiErrorBody }
+
+/** Banyak aksi dalam satu round-trip (±1 detik hemat per aksi). */
+export async function batch(calls: { action: string; payload?: Record<string, unknown> }[]): Promise<BatchResult[]> {
+  const results = (await send<BatchResult[]>({ action: 'batch', payload: { calls } })).data
+  if (results.some((r) => !r.ok && AUTH_LOST.has(r.error.code))) onAuthLost?.()
+  return results
+}
+
+export function errorText(e: unknown) {
+  return e instanceof ApiError ? e.message : 'Terjadi kesalahan tak terduga.'
 }

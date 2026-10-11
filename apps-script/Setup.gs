@@ -1,11 +1,12 @@
 /**
- * Setup — membuat spreadsheet template Neraca.
- * Jalankan setupTemplate() SEKALI dari editor Apps Script (menu Run).
- * Spreadsheet baru dibuat di Drive akun yang menjalankan, lalu ID-nya
- * disimpan di Script Properties (SPREADSHEET_ID).
+ * Setup — membuat & memperbarui spreadsheet database Neraca.
+ *
+ * Instal baru  : jalankan setupTemplate() sekali.
+ * Update kode  : jalankan upgradeSchema() setiap kali file Apps Script diperbarui.
+ *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.1.0';
+const SCHEMA_VERSION = '0.2.0';
 
 const SCHEMA = {
   // ---- master
@@ -181,6 +182,7 @@ function setupTemplate() {
   seed_(ss);
   props.setProperty('SPREADSHEET_ID', ss.getId());
   Logger.log('Selesai. Spreadsheet: ' + ss.getUrl());
+  upgradeSchema();
   return ss.getId();
 }
 
@@ -213,4 +215,102 @@ function seed_(ss) {
 function resetSetup() {
   PropertiesService.getScriptProperties().deleteProperty('SPREADSHEET_ID');
   Logger.log('SPREADSHEET_ID dihapus dari Script Properties. Jalankan setupTemplate() lagi.');
+}
+
+// ================================================================ peran & izin
+
+/** Katalog izin. Kunci dipakai di route server dan menu React. */
+const PERMISSIONS = [
+  ['dashboard.view', 'Lihat dashboard'],
+  ['master.view', 'Lihat master data'], ['master.edit', 'Ubah master data'],
+  ['penjualan.view', 'Lihat penjualan & piutang'], ['penjualan.edit', 'Buat/ubah penjualan'],
+  ['pembelian.view', 'Lihat pembelian & utang'], ['pembelian.edit', 'Buat/ubah pembelian'],
+  ['kas.view', 'Lihat kas & bank'], ['kas.edit', 'Catat kas & bank'], ['bank.saldo', 'Lihat saldo rekening bank'],
+  ['persediaan.view', 'Lihat persediaan'], ['persediaan.edit', 'Ubah persediaan & opname'],
+  ['aset.view', 'Lihat aset tetap'], ['aset.edit', 'Ubah aset tetap'],
+  ['jurnal.view', 'Lihat jurnal & buku besar'], ['jurnal.edit', 'Buat jurnal manual'], ['jurnal.approve', 'Setujui jurnal'],
+  ['periode.lock', 'Kunci periode & tutup buku'], ['periode.reopen', 'Buka kembali periode'],
+  ['laporan.view', 'Lihat laporan keuangan'],
+  ['anggaran.view', 'Lihat anggaran'], ['anggaran.edit', 'Ubah anggaran'],
+  ['payroll.view', 'Lihat data & laporan gaji'], ['payroll.edit', 'Proses payroll'],
+  ['pajak.view', 'Lihat pajak'], ['pajak.edit', 'Ubah pengaturan pajak'],
+  ['user.manage', 'Kelola pengguna & peran'], ['audit.view', 'Lihat audit log & riwayat login'],
+  ['modul.manage', 'Aktivasi modul'], ['setting.edit', 'Ubah pengaturan perusahaan'], ['backup.run', 'Backup, impor & ekspor'],
+].map(function (p) { return { kode: p[0], nama: p[1] }; });
+
+const ROLES = [
+  ['owner', 'Owner', ['*'], 0],
+  ['direktur', 'Direktur', ['dashboard.view', 'master.view', 'penjualan.view', 'pembelian.view', 'kas.view', 'bank.saldo', 'persediaan.view',
+    'aset.view', 'jurnal.view', 'jurnal.approve', 'laporan.view', 'anggaran.view', 'pajak.view', 'audit.view'], 0],
+  ['finance', 'Finance', ['dashboard.view', 'master.view', 'master.edit', 'penjualan.view', 'penjualan.edit', 'pembelian.view', 'pembelian.edit',
+    'kas.view', 'kas.edit', 'bank.saldo', 'jurnal.view', 'laporan.view', 'pajak.view', 'pajak.edit', 'anggaran.view'], 10000000],
+  ['accounting', 'Accounting', ['dashboard.view', 'master.view', 'penjualan.view', 'pembelian.view', 'kas.view', 'bank.saldo', 'persediaan.view',
+    'aset.view', 'aset.edit', 'jurnal.view', 'jurnal.edit', 'periode.lock', 'laporan.view', 'pajak.view', 'anggaran.view', 'anggaran.edit'], 0],
+  ['admin', 'Admin', ['master.view', 'master.edit', 'penjualan.view', 'penjualan.edit', 'pembelian.view', 'pembelian.edit', 'persediaan.view'], 0],
+  ['kasir', 'Kasir', ['master.view', 'penjualan.view', 'penjualan.edit', 'kas.view', 'kas.edit'], 2000000],
+  ['gudang', 'Gudang', ['master.view', 'pembelian.view', 'persediaan.view', 'persediaan.edit'], 0],
+  ['hr', 'HR & Payroll', ['master.view', 'payroll.view', 'payroll.edit'], 0],
+  ['auditor', 'Auditor', ['dashboard.view', 'master.view', 'penjualan.view', 'pembelian.view', 'kas.view', 'bank.saldo', 'persediaan.view',
+    'aset.view', 'jurnal.view', 'laporan.view', 'anggaran.view', 'pajak.view', 'audit.view'], 0],
+];
+
+/** Isi SYS_Role bila masih kosong. Peran yang sudah ada tidak ditimpa (bisa diubah owner). */
+function ensureRoles_() {
+  const existing = readTable_('SYS_Role').map(function (r) { return r.id; });
+  const add = ROLES.filter(function (r) { return existing.indexOf(r[0]) < 0; })
+    .map(function (r) { return { id: r[0], nama: r[1], izin_json: JSON.stringify(r[2]), batas_approval: r[3] }; });
+  if (add.length) withLock_(function () { appendObjects_('SYS_Role', add); });
+  return add.length;
+}
+
+// ================================================================ upgrade
+
+/**
+ * Jalankan dari editor setiap kali kode Apps Script diperbarui.
+ * Menambah tab & kolom yang belum ada, mengisi peran bawaan, dan membuat kode setup owner.
+ */
+function upgradeSchema() {
+  const ss = getSpreadsheet_();
+  const log = [];
+  Object.keys(SCHEMA).forEach(function (name) {
+    var sh = ss.getSheetByName(name);
+    const head = SCHEMA[name];
+    if (!sh) {
+      sh = ss.insertSheet(name);
+      sh.getRange(1, 1, 1, head.length).setValues([head]).setFontWeight('bold').setBackground('#e3f1ec');
+      sh.setFrozenRows(1);
+      log.push('+ tab ' + name);
+      return;
+    }
+    const current = sh.getRange(1, 1, 1, Math.max(sh.getLastColumn(), 1)).getValues()[0].map(String).filter(String);
+    const missing = head.filter(function (h) { return current.indexOf(h) < 0; });
+    if (missing.length) {
+      if (sh.getMaxColumns() < current.length + missing.length) sh.insertColumnsAfter(sh.getMaxColumns(), current.length + missing.length - sh.getMaxColumns());
+      sh.getRange(1, current.length + 1, 1, missing.length).setValues([missing]).setFontWeight('bold').setBackground('#e3f1ec');
+      log.push('+ kolom ' + name + ': ' + missing.join(', '));
+    }
+  });
+  Object.keys(CACHED_TABLES).forEach(invalidate_);
+  const roles = ensureRoles_();
+  if (roles) log.push('+ ' + roles + ' peran bawaan');
+
+  const settings = ss.getSheetByName('SYS_Setting');
+  const sv = settings.getDataRange().getValues();
+  var found = false;
+  for (var i = 1; i < sv.length; i++) {
+    if (sv[i][0] === 'schema_version') { settings.getRange(i + 1, 2).setValue(SCHEMA_VERSION); found = true; }
+  }
+  if (!found) settings.appendRow(['schema_version', SCHEMA_VERSION]);
+  invalidate_('SYS_Setting');
+
+  const props = PropertiesService.getScriptProperties();
+  if (readTable_('SYS_User').length === 0) {
+    var code = props.getProperty('SETUP_CODE');
+    if (!code) {
+      code = Utilities.getUuid().replace(/-/g, '').slice(0, 8).toUpperCase();
+      props.setProperty('SETUP_CODE', code);
+    }
+    log.push('KODE SETUP OWNER: ' + code + '  ← masukkan di halaman "Buat akun owner"');
+  }
+  Logger.log('upgradeSchema ' + SCHEMA_VERSION + ' selesai.\n' + (log.length ? log.join('\n') : 'Tidak ada perubahan.'));
 }

@@ -2,89 +2,100 @@
 
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
-Repo ini sekarang berisi **Langkah 0**: membuktikan jalur React → Apps Script → Google Sheets bekerja, sekaligus membuat spreadsheet database lengkap (34 tab, COA standar 76 akun, daftar modul untuk menu aktivasi).
+- Web: https://jundicomp.github.io/laporankeuangan/
+- Status: **Langkah 1 selesai** — login, akun owner, peran & hak akses, pengguna, audit log, aktivasi modul, profil.
 
 ```
-neraca/
+laporankeuangan/
 ├─ .github/workflows/deploy.yml   build web → GitHub Pages otomatis
 ├─ apps-script/                   backend (Google Apps Script)
-│  ├─ appsscript.json             manifest: zona waktu, scope, setelan Web App
-│  ├─ Main.gs                     doPost router + aksi Langkah 0
-│  ├─ Util.gs                     error, akses sheet, lock, ID
-│  └─ Setup.gs                    skema 34 tab, COA, modul, setupTemplate()
-└─ web/                           frontend React + TypeScript
-   └─ src/
-      ├─ api/client.ts            panggilan API (text/plain, tanpa preflight CORS)
-      └─ App.tsx                  halaman uji koneksi Langkah 0
+│  ├─ appsscript.json             manifest
+│  ├─ Main.gs                     router: izin per aksi, batch, diagnostik
+│  ├─ Util.gs                     akses sheet + cache, lock, ID, audit, penomoran
+│  ├─ Setup.gs                    skema tab, COA, modul, peran & izin, setupTemplate(), upgradeSchema()
+│  ├─ Auth.gs                     owner pertama, login, sesi, ganti password/username
+│  └─ Admin.gs                    bootstrap, pengguna, peran, modul, perusahaan, audit
+└─ web/src/
+   ├─ api/client.ts               panggilan API + token + batch
+   ├─ auth/session.tsx            status login & data bootstrap
+   ├─ nav.ts                      peta menu (izin + modul)
+   ├─ components/                 layout sidebar, komponen kecil
+   └─ pages/                      login, setup owner, beranda, pengguna, audit, pengaturan, profil
 ```
 
 ---
 
-## A. Pasang backend Apps Script (±10 menit)
+## Update ke Langkah 1 (dari Langkah 0)
 
-Cara paling cepat, tanpa instal apa pun:
+### 1. Perbarui Apps Script
 
-1. Buka <https://script.google.com> → **New project**. Beri nama `Neraca API`.
-2. **Project Settings** (ikon gerigi) → centang **Show "appsscript.json" manifest file in editor**.
-3. Kembali ke **Editor**, lalu salin isi file dari folder `apps-script/`:
-   - `appsscript.json` → timpa isi manifest yang ada.
-   - Ganti nama `Code.gs` jadi `Main.gs`, tempel isi `Main.gs`.
-   - Tambah file script baru `Util` dan `Setup`, tempel isinya.
-4. Pilih fungsi **setupTemplate** di toolbar → **Run**. Izinkan akses saat diminta.
-   Di **Execution log** muncul link spreadsheet *"Neraca — Database"* — buka dan cek tab-tabnya.
-5. **Deploy → New deployment** → tipe **Web app**:
-   - *Execute as*: **Me**
-   - *Who has access*: **Anyone**
-   Klik **Deploy**, salin **Web app URL** (berakhiran `/exec`).
+Buka project **Neraca API** di script.google.com. Isi file bisa disalin dari GitHub (buka file → tombol *Copy raw file*).
 
-Setiap kali kode Apps Script diubah: **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**. URL tetap sama.
+| File di editor | Tindakan |
+|---|---|
+| `main.gs` | ganti seluruh isi dengan `Main.gs` |
+| `Util.gs` | ganti seluruh isi |
+| `Setup.gs` | ganti seluruh isi |
+| `Auth.gs` | **baru** — klik **+ → Skrip**, beri nama `Auth`, tempel |
+| `Admin.gs` | **baru** — klik **+ → Skrip**, beri nama `Admin`, tempel |
+| `appsscript.json` | tidak berubah |
 
-> Alternatif untuk developer: `npm i -g @google/clasp`, `clasp login`, salin `.clasp.json.example` jadi `.clasp.json` dan isi `scriptId`, lalu `clasp push` dari folder `apps-script`.
+Simpan (Ctrl+S), lalu pilih fungsi **upgradeSchema** → **Jalankan**. Di *Log eksekusi* muncul:
 
-## B. Jalankan frontend
-
-**Lokal:**
-
-```bash
-cd web
-npm install
-npm run dev
+```
+upgradeSchema 0.2.0 selesai.
++ 9 peran bawaan
+KODE SETUP OWNER: XXXXXXXX
 ```
 
-Buka alamat yang muncul, tempel URL `/exec`, klik **Jalankan uji**.
+Catat **kode setup** itu.
 
-**Di GitHub Pages:**
+### 2. Deploy versi baru (URL tetap sama)
 
-1. Buat repo baru di GitHub, push isi folder ini ke branch `main`.
-2. **Settings → Pages → Source: GitHub Actions**.
-3. **Settings → Secrets and variables → Actions → Variables → New variable**: `VITE_API_URL` = URL `/exec` tadi.
-4. Push apa saja ke `main` (atau jalankan workflow manual di tab **Actions**). Aplikasi tayang di `https://<username>.github.io/<nama-repo>/`.
+**Terapkan → Kelola deployment → ✏️ Edit → Versi: Versi baru → Terapkan.**
+Jangan pilih "Deployment baru" — itu membuat URL baru.
 
-## C. Kriteria lulus Langkah 0
+### 3. Perbarui web
 
-Di halaman uji, kelima baris harus hijau:
+Di folder proyek: `git add -A`, `git commit -m "Langkah 1"`, `git push`. Tunggu workflow di tab **Actions** hijau (±1 menit).
 
-| Uji | Artinya |
-|---|---|
-| Server menjawab | Web App ter-deploy dan bisa diakses |
-| Spreadsheet terhubung | `setupTemplate()` sukses, 34 tab ada |
-| Menulis baris | LockService + appendRow jalan |
-| Membaca kembali | Data yang ditulis benar-benar tersimpan |
-| Kecepatan | Rata-rata ping < 3 detik |
+### 4. Buat akun owner
 
-Catat angka kecepatan rata-ratanya — itu acuan kita untuk desain cache di Langkah 1.
+Buka web-nya → muncul halaman **Buat akun owner** → isi kode setup, nama perusahaan, nama, username, password. Setelah itu kode setup tidak berlaku lagi.
 
-## D. Kalau ada yang merah
+---
 
-- **NETWORK** — URL salah, atau akses Web App bukan *Anyone*.
-- **BAD_RESPONSE** — biasanya membuka URL `/dev` bukan `/exec`, atau lupa deploy *New version* setelah mengubah kode.
-- **NOT_SETUP** — `setupTemplate()` belum dijalankan.
-- **Tab kurang dari 30** — spreadsheet lama tertaut; jalankan `resetSetup()` lalu `setupTemplate()`.
+## Instal baru (tanpa Langkah 0)
 
-## E. Catatan keamanan
+1. script.google.com → **New project** `Neraca API` → Project Settings → centang *Show appsscript.json*.
+2. Buat file `Main`, `Util`, `Setup`, `Auth`, `Admin` dan tempel isinya; timpa `appsscript.json`.
+3. Jalankan **setupTemplate** (membuat spreadsheet "Neraca — Database" + kode setup owner di log).
+4. **Terapkan → Deployment baru → Aplikasi web**, *Jalankan sebagai: Saya*, *Akses: Siapa saja*. Salin URL `/exec`.
+5. GitHub repo → Settings → Pages → *Source: GitHub Actions*; Settings → Secrets and variables → Actions → Variables → `VITE_API_URL` = URL `/exec`.
+6. Push ke `main`, buka web, buat akun owner.
 
-Di Langkah 0, Web App terbuka untuk siapa saja yang tahu URL-nya, tapi hanya aksi `system.*` dan `test.*` (tab `T_Ping`) yang tersedia. **Jangan isi data keuangan asli dulu.** Login, token sesi, hash password, dan hak akses per peran dibangun di Langkah 1 — setelah itu semua aksi selain ping wajib membawa token.
+## Setiap kali kode Apps Script diperbarui
 
-## Berikutnya: Langkah 1
+1. Tempel file yang berubah.
+2. Jalankan **upgradeSchema** (aman diulang; hanya menambah yang belum ada).
+3. **Kelola deployment → Edit → Versi baru → Terapkan.**
 
-Login & sesi, router dengan pengecekan izin per peran, audit log, penomoran dokumen, pembacaan `SYS_Modul`, serta layout aplikasi (sidebar, route guard) di React.
+---
+
+## Keamanan
+
+- Password disimpan sebagai hash SHA-256 berulang + salt per pengguna, tidak pernah tersimpan polos.
+- Token sesi berlaku 8 jam, disimpan di sessionStorage (hilang saat tab ditutup).
+- 3× salah password → akun dikunci 15 menit. Semua login tercatat di riwayat.
+- Setiap aksi dicek izinnya **di server** — menyembunyikan menu di React hanya untuk kenyamanan.
+- Ganti peran, nonaktifkan pengguna, atau reset password → semua sesi pengguna itu langsung dicabut.
+- Owner pertama hanya bisa dibuat dengan kode setup dari log Apps Script.
+- Jangan bagikan file spreadsheet "Neraca — Database" ke orang lain; akses data seharusnya lewat aplikasi.
+
+## Peran bawaan
+
+Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & Payroll · Auditor. Matriks izinnya bisa dilihat di menu **Pengguna & Akses → Peran & izin**.
+
+## Berikutnya: Langkah 2
+
+Chart of accounts, form jurnal umum, buku besar, neraca saldo, kunci periode — dengan `ledger.post()` sebagai satu-satunya pintu masuk jurnal.
