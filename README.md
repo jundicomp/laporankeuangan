@@ -3,7 +3,7 @@
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
 - Web: https://jundicomp.github.io/laporankeuangan/
-- Status: **Langkah 2 selesai** — chart of accounts, jurnal umum/penyesuaian/saldo awal, approval, pembatalan dengan jejak, pembalik otomatis, buku besar, neraca saldo, kunci periode. (Langkah 1: login, peran & akses, pengguna, audit log, aktivasi modul.)
+- Status: **MVP selesai (Langkah 4)** — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
 
 ```
 laporankeuangan/
@@ -15,16 +15,41 @@ laporankeuangan/
 │  ├─ Setup.gs                    skema tab, COA, modul, peran & izin, setupTemplate(), upgradeSchema()
 │  ├─ Auth.gs                     owner pertama, login, sesi, ganti password/username
 │  ├─ Admin.gs                    bootstrap, pengguna, peran, modul, perusahaan, audit
-│  └─ Ledger.gs                   postJournal_ (satu pintu jurnal), buku besar, neraca saldo, COA, periode
+│  ├─ Ledger.gs                   postJournal_ (satu pintu jurnal), buku besar, neraca saldo, COA, periode
+│  ├─ Master.gs                   pelanggan, supplier, produk/jasa + impor
+│  ├─ Cash.gs                     rekening kas/bank, pemasukan, pengeluaran, transfer
+│  ├─ Report.gs                   laba rugi & posisi keuangan (SAK EP)
+│  ├─ Sales.gs                    invoice, pelunasan, umur piutang, penagihan, dashboard
+│  └─ Backup.gs                   backup harian ke Drive, impor saldo awal
 └─ web/src/
    ├─ api/client.ts               panggilan API + token + batch
    ├─ auth/session.tsx            status login & data bootstrap
    ├─ nav.ts                      peta menu (izin + modul)
    ├─ components/                 layout sidebar, komponen kecil
-   └─ pages/                      login, setup owner, beranda, pengguna, audit, pengaturan, profil
+   └─ pages/                      dashboard, penjualan, piutang, kas & bank, jurnal, laporan, master, pengaturan, …
 ```
 
 ---
+
+## Update ke Langkah 4 (dari Langkah 3)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Util`, `Setup`, `Admin`, `Ledger`, `Cash`.
+2. Tambah 1 file baru (**+ → Skrip**): `Sales`.
+3. Simpan, jalankan **upgradeSchema**. Log menampilkan kolom baru di `T_Dokumen`, `T_Pembayaran`, `T_KasBank`.
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+
+Mulai pakai: **Pengaturan → Perusahaan → Ubah profil** (logo, rekening bank, penanda tangan — tampil di invoice). Bila ada piutang lama dari saldo awal, catat lewat **Piutang → Piutang lama (saldo awal)** supaya umur piutang cocok dengan buku besar. Setelah itu buat invoice di **Penjualan**.
+
+## Update ke Langkah 3 (dari Langkah 2)
+
+1. Di project **Neraca API**: ganti isi `appsscript.json`, `main.gs`, `Setup`, `Ledger`.
+2. Tambah 4 file baru (**+ → Skrip**): `Master`, `Cash`, `Report`, `Backup`.
+3. Simpan, jalankan **upgradeSchema**. Google akan minta izin tambahan (**Google Drive** untuk backup dan **trigger** untuk jadwal harian) — klik Izinkan. Log menampilkan `+ backup otomatis harian pukul 02.00`.
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+
+Mulai pakai: **Impor & Backup → Impor saldo awal** (template Excel berisi semua akun neraca), lalu **Master Data**, lalu catat transaksi di **Kas & Bank**. Lihat hasilnya di **Laporan**.
 
 ## Update ke Langkah 2 (dari Langkah 1)
 
@@ -117,6 +142,24 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - Periode yang dikunci menolak posting & pembatalan. Membuka kembali hanya owner, wajib alasan.
 - Akun yang sudah dipakai tidak bisa diubah saldo normalnya atau dijadikan header; nonaktif hanya bila saldonya nol.
 
-## Berikutnya: Langkah 3
+## Aturan Kas & Bank
 
-Kas & bank (pemasukan, pengeluaran, transfer), master data (pelanggan, supplier, produk), laporan laba rugi & posisi keuangan, impor saldo awal dari Excel, backup harian.
+- Pemasukan: debit rekening, kredit akun pendapatan/lawan. Pengeluaran: debit akun beban/lawan, kredit rekening. Transfer: debit tujuan, kredit asal.
+- Jurnal dibuat otomatis (KM/KK/TR) dan tidak bisa dibatalkan dari menu Jurnal — batalkan dari Kas & Bank supaya dokumen & jurnal tetap sinkron.
+- Saldo kas tunai dan kas kecil tidak boleh minus; rekening bank boleh (overdraft) dengan tetap tercatat.
+- Peran tanpa izin *lihat saldo rekening bank* (mis. Kasir) tidak melihat dan tidak bisa bertransaksi di rekening bank.
+
+## Aturan Penjualan & Piutang
+
+- Invoice draft belum bernomor dan belum masuk pembukuan. Saat **diposting**: Dr Piutang usaha (total), Dr Potongan penjualan (diskon), Cr Pendapatan per akun, Cr PPN keluaran. Angka dihitung ulang di server.
+- Nomor invoice otomatis `INV/2026/10/0001` (format bisa diubah di tab `SYS_Setting`, kunci `format_nomor_invoice`).
+- Jatuh tempo otomatis = tanggal + TOP pelanggan (atau TOP default perusahaan), bisa diubah per invoice.
+- Batas kredit pelanggan: posting yang membuat piutang melewati batas ditahan dengan peringatan; bisa tetap diposting dengan centang konfirmasi (tercatat di audit log).
+- Pelunasan boleh bertahap. Jurnal: Dr Kas/Bank (uang diterima) + Dr akun potongan (PPh 23 dipotong → Pajak dibayar di muka, biaya transfer, dll.), Cr Piutang. Pelunasan otomatis tampil di Kas & Bank tapi hanya bisa dibatalkan dari invoice-nya.
+- Invoice yang sudah menerima pembayaran tidak bisa dibatalkan sebelum pembayarannya dibatalkan.
+- Piutang lama (sebelum memakai aplikasi) dicatat sebagai invoice saldo awal tanpa jurnal baru. Umur piutang selalu dibandingkan dengan saldo buku besar akun piutang; selisih ditandai di halaman Piutang dan dashboard.
+- Cetak/PDF: tombol **Cetak / PDF** di invoice → pilih *Simpan sebagai PDF* di jendela cetak; nama file otomatis = nomor invoice.
+
+## Berikutnya (setelah MVP)
+
+Pembelian, utang supplier & persediaan → siklus PSAK lengkap (neraca lajur, jurnal penutup, arus kas, CALK) → aset tetap, payroll, pajak → anggaran, paket laporan bankable, multi perusahaan.

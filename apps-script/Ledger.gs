@@ -11,6 +11,7 @@
 
 const JOURNAL_TYPES = {
   JU: 'Jurnal umum', JP: 'Jurnal penyesuaian', SA: 'Saldo awal', JR: 'Jurnal pembalik', JT: 'Jurnal penutup',
+  KM: 'Kas masuk', KK: 'Kas keluar', TR: 'Transfer kas/bank', PJ: 'Penjualan',
 };
 const MANUAL_TYPES = ['JU', 'JP', 'SA'];
 const ACCOUNT_TYPES = ['aset', 'liabilitas', 'ekuitas', 'pendapatan', 'hpp', 'beban', 'lain', 'pajak'];

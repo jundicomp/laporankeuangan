@@ -1,6 +1,7 @@
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { call, callTimed, errorText, getApiUrl, setApiUrl } from '../api/client'
 import { useSession, type Module } from '../auth/session'
+import { companyAccounts, type Rekening } from '../components/InvoiceDoc'
 import { Banner, Field, Modal, PageHead } from '../components/ui'
 
 const GROUPS: { title: string; kode: string[] }[] = [
@@ -120,35 +121,87 @@ function ModulesTab() {
 function CompanyTab() {
   const { boot, can, reload } = useSession()
   const c = boot?.company ?? {}
+  const st = boot?.settings ?? {}
   const [open, setOpen] = useState(false)
   const [flash, setFlash] = useState('')
-  const rows: [string, string][] = [
+  const rek = companyAccounts(c.rekening_json)
+  const rows: [string, ReactNode][] = [
+    ['Logo', c.logo_url ? <img src={c.logo_url} alt="logo" className="logo-prev" /> : ''],
     ['Nama perusahaan', c.nama], ['NPWP', c.npwp], ['Alamat', c.alamat], ['Telepon', c.telepon], ['Email', c.email],
+    ['Rekening di invoice', rek.map((r, i) => <div key={i}>{r.bank} {r.no}{r.atas_nama && ` a.n. ${r.atas_nama}`}</div>)],
+    ['Tarif PPN default', st.ppn_tarif ? `${st.ppn_tarif}%` : ''], ['Jatuh tempo default', st.top_default ? `${st.top_default} hari` : ''],
+    ['Penanda tangan invoice', [st.invoice_ttd_nama, st.invoice_ttd_jabatan].filter(Boolean).join(' · ')],
+    ['Catatan kaki invoice', st.invoice_catatan],
     ['Kerangka laporan', c.kerangka_sak || 'SAK EP'], ['Metode HPP', c.metode_hpp || 'rata-rata'],
   ]
   return (
     <div className="card stack narrow">
       {flash && <Banner kind="ok">{flash}</Banner>}
-      <table className="tbl kv"><tbody>{rows.map(([k, v]) => <tr key={k}><td>{k}</td><td>{v || <span className="warn-text">belum diisi</span>}</td></tr>)}</tbody></table>
+      <table className="tbl kv"><tbody>{rows.map(([k, v]) => <tr key={k}><td>{k}</td><td>{(Array.isArray(v) ? v.length : v) ? v : <span className="warn-text">belum diisi</span>}</td></tr>)}</tbody></table>
       {can('setting.edit') && <div><button className="btn primary" onClick={() => { setFlash(''); setOpen(true) }}>Ubah profil perusahaan</button></div>}
-      {open && <CompanyForm initial={c} onClose={() => setOpen(false)} onSaved={async () => { await reload(); setOpen(false); setFlash('Profil perusahaan disimpan.') }} />}
+      {open && <CompanyForm initial={c} settings={st} onClose={() => setOpen(false)} onSaved={async () => { await reload(); setOpen(false); setFlash('Profil perusahaan disimpan.') }} />}
     </div>
   )
 }
 
-function CompanyForm({ initial, onClose, onSaved }: { initial: Record<string, string>; onClose: () => void; onSaved: () => Promise<void> }) {
-  const start = { nama: initial.nama ?? '', npwp: initial.npwp ?? '', alamat: initial.alamat ?? '', telepon: initial.telepon ?? '', email: initial.email ?? '' }
+/** Perkecil logo di browser supaya muat di satu sel spreadsheet (maks ±45 ribu karakter). */
+async function shrinkLogo(file: File): Promise<string> {
+  const url = URL.createObjectURL(file)
+  try {
+    const img = await new Promise<HTMLImageElement>((ok, no) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => no(new Error('x')); i.src = url })
+    for (const [maxW, maxH] of [[360, 140], [260, 100], [180, 70]]) {
+      const r = Math.min(1, maxW / img.width, maxH / img.height)
+      const cv = document.createElement('canvas')
+      cv.width = Math.max(1, Math.round(img.width * r))
+      cv.height = Math.max(1, Math.round(img.height * r))
+      cv.getContext('2d')!.drawImage(img, 0, 0, cv.width, cv.height)
+      const png = cv.toDataURL('image/png')
+      if (png.length < 45000) return png
+      const ctx = cv.getContext('2d')!
+      ctx.globalCompositeOperation = 'destination-over'
+      ctx.fillStyle = '#fff'
+      ctx.fillRect(0, 0, cv.width, cv.height)
+      const jpg = cv.toDataURL('image/jpeg', 0.85)
+      if (jpg.length < 45000) return jpg
+    }
+    throw new Error('Logo terlalu rumit untuk diperkecil. Coba gambar lain.')
+  } finally {
+    URL.revokeObjectURL(url)
+  }
+}
+
+function CompanyForm({ initial, settings, onClose, onSaved }: { initial: Record<string, string>; settings: Record<string, string>; onClose: () => void; onSaved: () => Promise<void> }) {
+  const start = {
+    nama: initial.nama ?? '', npwp: initial.npwp ?? '', alamat: initial.alamat ?? '', telepon: initial.telepon ?? '', email: initial.email ?? '', logo_url: initial.logo_url ?? '',
+    rek: (() => { const r = companyAccounts(initial.rekening_json); while (r.length < 3) r.push({ bank: '', no: '', atas_nama: '' }); return r })(),
+    ppn_tarif: settings.ppn_tarif ?? '11', top_default: settings.top_default ?? '14', invoice_ttd_nama: settings.invoice_ttd_nama ?? '',
+    invoice_ttd_jabatan: settings.invoice_ttd_jabatan ?? '', invoice_catatan: settings.invoice_catatan ?? '',
+  }
   const [f, setF] = useState(start)
   const [err, setErr] = useState('')
   const [busy, setBusy] = useState(false)
   const set = (k: keyof typeof f) => (e: React.ChangeEvent<HTMLInputElement>) => setF({ ...f, [k]: e.target.value })
+  const setRek = (i: number, k: keyof Rekening, v: string) => setF({ ...f, rek: f.rek.map((r, j) => (j === i ? { ...r, [k]: v } : r)) })
+  const pickLogo = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    e.target.value = ''
+    if (!file) return
+    setErr('')
+    try { setF({ ...f, logo_url: await shrinkLogo(file) }) } catch (x) { setErr(x instanceof Error && x.message !== 'x' ? x.message : 'File bukan gambar yang bisa dibaca.') }
+  }
+  const halfRek = f.rek.find((r) => (r.bank.trim() || r.no.trim()) && !(r.bank.trim() && r.no.trim()))
   const save = async (e?: FormEvent) => {
     e?.preventDefault()
     if (!f.nama.trim()) return setErr('Nama perusahaan wajib diisi.')
+    if (halfRek) return setErr('Rekening bank perlu nama bank dan nomor rekening sekaligus.')
     setBusy(true)
     setErr('')
     try {
-      await call('company.update', f)
+      await call('company.update', {
+        nama: f.nama, npwp: f.npwp, alamat: f.alamat, telepon: f.telepon, email: f.email, logo_url: f.logo_url,
+        rekening_json: JSON.stringify(f.rek.filter((r) => r.bank.trim() && r.no.trim())),
+        settings: { ppn_tarif: f.ppn_tarif, top_default: f.top_default, invoice_ttd_nama: f.invoice_ttd_nama, invoice_ttd_jabatan: f.invoice_ttd_jabatan, invoice_catatan: f.invoice_catatan },
+      })
       await onSaved()
     } catch (e2) {
       setErr(errorText(e2))
@@ -156,9 +209,14 @@ function CompanyForm({ initial, onClose, onSaved }: { initial: Record<string, st
     }
   }
   return (
-    <Modal title="Ubah profil perusahaan" onClose={onClose} dirty={!busy && JSON.stringify(f) !== JSON.stringify(start)}
-      footer={<><button className="btn" onClick={onClose}>Batal</button><button type="submit" form="company-form" className="btn primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button></>}>
+    <Modal size="lg" title="Ubah profil perusahaan" sub="Data ini tampil di kop invoice dan laporan." onClose={onClose} dirty={!busy && JSON.stringify(f) !== JSON.stringify(start)}
+      footer={<>{halfRek && <span className="warn-text">⚠ Lengkapi nama bank & nomor rekening.</span>}<button className="btn" onClick={onClose}>Batal</button><button type="submit" form="company-form" className="btn primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button></>}>
       <form id="company-form" className="stack" onSubmit={save}>
+        <div className="logo-row">
+          {f.logo_url ? <img src={f.logo_url} alt="logo" className="logo-prev" /> : <div className="logo-empty">Belum ada logo</div>}
+          <label className="btn">Pilih logo…<input type="file" accept="image/*" hidden onChange={pickLogo} /></label>
+          {f.logo_url && <button type="button" className="link" onClick={() => setF({ ...f, logo_url: '' })}>hapus logo</button>}
+        </div>
         <Field label="Nama perusahaan" value={f.nama} onChange={set('nama')} required />
         <div className="grid2">
           <Field label="NPWP" value={f.npwp} onChange={set('npwp')} />
@@ -166,7 +224,24 @@ function CompanyForm({ initial, onClose, onSaved }: { initial: Record<string, st
         </div>
         <Field label="Alamat" value={f.alamat} onChange={set('alamat')} />
         <Field label="Email" type="email" value={f.email} onChange={set('email')} />
-        <p className="hint">ⓘ Pilihan kerangka laporan (SAK EMKM / SAK EP / PSAK) dan metode HPP menyusul bersama modul laporan.</p>
+        <h3>Rekening untuk pembayaran (tampil di invoice)</h3>
+        {f.rek.map((r, i) => (
+          <div key={i} className="rek-row">
+            <input value={r.bank} onChange={(e) => setRek(i, 'bank', e.target.value)} placeholder="Bank, mis. BCA" />
+            <input value={r.no} onChange={(e) => setRek(i, 'no', e.target.value)} placeholder="No. rekening" />
+            <input value={r.atas_nama} onChange={(e) => setRek(i, 'atas_nama', e.target.value)} placeholder="Atas nama" />
+          </div>
+        ))}
+        <h3>Invoice</h3>
+        <div className="grid2">
+          <Field label="Tarif PPN default (%)" value={f.ppn_tarif} onChange={set('ppn_tarif')} inputMode="decimal" hint="Hanya dipakai bila PPN dicentang di invoice." />
+          <Field label="Jatuh tempo default (hari)" value={f.top_default} onChange={set('top_default')} inputMode="numeric" hint="Bila pelanggan belum punya TOP sendiri." />
+        </div>
+        <div className="grid2">
+          <Field label="Nama penanda tangan" value={f.invoice_ttd_nama} onChange={set('invoice_ttd_nama')} />
+          <Field label="Jabatan" value={f.invoice_ttd_jabatan} onChange={set('invoice_ttd_jabatan')} />
+        </div>
+        <Field label="Catatan kaki invoice" value={f.invoice_catatan} onChange={set('invoice_catatan')} placeholder="mis. Barang yang sudah dibeli tidak dapat ditukar." />
         <Banner kind="err">{err}</Banner>
       </form>
     </Modal>

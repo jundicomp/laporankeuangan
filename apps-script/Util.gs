@@ -124,14 +124,15 @@ function updateWhere_(name, key, val, patch) {
   for (var i = 1; i < values.length; i++) {
     if (String(values[i][k]) === String(val)) {
       const before = rowToObj_(head, values[i]);
-      const row = values[i].slice();
+      // sel teks yang tidak diubah ditulis ulang dengan apostrof, supaya "1-1301" / "2026-10" tidak berubah jadi tanggal
+      const row = values[i].map(function (c) { return typeof c === 'string' && c !== '' ? "'" + c : c; });
       Object.keys(patch).forEach(function (p) {
         const j = head.indexOf(p);
         if (j >= 0) row[j] = patch[p] === null || patch[p] === undefined ? '' : patch[p];
       });
       sh.getRange(i + 1, 1, 1, head.length).setValues([row]);
       invalidate_(name);
-      return { before: before, after: rowToObj_(head, row) };
+      return { before: before, after: rowToObj_(head, row.map(function (c) { return typeof c === 'string' && c.charAt(0) === "'" ? c.slice(1) : c; })) };
     }
   }
   throw new ApiError_('NOT_FOUND', 'Data tidak ditemukan: ' + name + ' ' + key + '=' + val);

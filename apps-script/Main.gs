@@ -38,6 +38,34 @@ const ROUTES = {
   'journal.void': { fn: actionJournalVoid_, perm: 'jurnal.edit', module: 'akuntansi' },
   'ledger.account': { fn: actionLedgerAccount_, perm: 'jurnal.view', module: 'akuntansi' },
   'ledger.trial': { fn: actionLedgerTrial_, perm: 'jurnal.view', module: 'akuntansi' },
+  // master data
+  'master.list': { fn: actionMasterList_, perm: 'master.view' },
+  'master.save': { fn: actionMasterSave_, perm: 'master.edit' },
+  'master.import': { fn: actionMasterImport_, perm: 'master.edit' },
+  // kas & bank
+  'kasbank.list': { fn: actionKasbankList_, perm: 'kas.view', module: 'kasbank' },
+  'kasbank.save': { fn: actionKasbankSave_, perm: 'kas.edit', module: 'kasbank' },
+  'cash.list': { fn: actionCashList_, perm: 'kas.view', module: 'kasbank' },
+  'cash.save': { fn: actionCashSave_, perm: 'kas.edit', module: 'kasbank' },
+  'cash.void': { fn: actionCashVoid_, perm: 'kas.edit', module: 'kasbank' },
+  // penjualan & piutang
+  'sales.list': { fn: actionSalesList_, perm: 'penjualan.view', module: 'penjualan' },
+  'sales.get': { fn: actionSalesGet_, perm: 'penjualan.view', module: 'penjualan' },
+  'sales.save': { fn: actionSalesSave_, perm: 'penjualan.edit', module: 'penjualan' },
+  'sales.void': { fn: actionSalesVoid_, perm: 'penjualan.edit', module: 'penjualan' },
+  'ar.customer': { fn: actionArCustomer_, perm: 'penjualan.view', module: 'penjualan' },
+  'ar.pay': { fn: actionArPay_, perm: 'kas.edit', module: 'penjualan' },
+  'ar.payVoid': { fn: actionArPayVoid_, perm: 'kas.edit', module: 'penjualan' },
+  'ar.followup': { fn: actionArFollowup_, perm: 'penjualan.view', module: 'piutang' },
+  'ar.aging': { fn: actionArAging_, perm: 'penjualan.view', module: 'piutang' },
+  'dashboard.summary': { fn: actionDashboard_, perm: 'dashboard.view' },
+  // laporan
+  'report.income': { fn: actionReportIncome_, perm: 'laporan.view', module: 'laporan' },
+  'report.balance': { fn: actionReportBalance_, perm: 'laporan.view', module: 'laporan' },
+  // backup & impor
+  'backup.list': { fn: actionBackupList_, perm: 'backup.run' },
+  'backup.run': { fn: actionBackupRun_, perm: 'backup.run' },
+  'import.opening': { fn: actionImportOpening_, perm: 'jurnal.edit', module: 'akuntansi' },
   'period.list': { fn: actionPeriodList_, perm: 'jurnal.view' },
   'period.set': { fn: actionPeriodSet_, perm: 'periode.lock' },
   // sistem

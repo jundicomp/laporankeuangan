@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type InputHTMLAttributes, type ReactNode } from 'react'
+import { useBlocker } from 'react-router-dom'
 
 /** Tanda wajib isi: bintang merah. */
 export function Req() {
@@ -31,7 +32,21 @@ export function Modal({ title, sub, onClose, dirty = false, size = 'md', footer,
 }) {
   const [confirm, setConfirm] = useState(false)
   const box = useRef<HTMLDivElement>(null)
+  const allow = useRef(false)
+  // tahan navigasi (tombol Back, klik link) selama ada isian yang belum disimpan
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    dirty && !allow.current && currentLocation.pathname + currentLocation.search !== nextLocation.pathname + nextLocation.search)
+  useEffect(() => { if (blocker.state === 'blocked') setConfirm(true) }, [blocker.state])
   const tryClose = () => (dirty ? setConfirm(true) : onClose())
+  const discard = () => {
+    allow.current = true
+    if (blocker.state === 'blocked') blocker.proceed()
+    else onClose()
+  }
+  const keep = () => {
+    if (blocker.state === 'blocked') blocker.reset()
+    setConfirm(false)
+  }
   const tryCloseRef = useRef(tryClose)
   tryCloseRef.current = tryClose
 
@@ -66,8 +81,8 @@ export function Modal({ title, sub, onClose, dirty = false, size = 'md', footer,
         {confirm ? (
           <div className="modal-foot confirm">
             <span className="warn-text">⚠ Ada isian yang belum disimpan. Tutup dan buang isian ini?</span>
-            <button type="button" className="btn" onClick={() => setConfirm(false)}>Kembali mengisi</button>
-            <button type="button" className="btn danger" onClick={onClose}>Buang & tutup</button>
+            <button type="button" className="btn" onClick={keep}>Kembali mengisi</button>
+            <button type="button" className="btn danger" onClick={discard}>Buang & tutup</button>
           </div>
         ) : footer && <div className="modal-foot">{footer}</div>}
       </div>

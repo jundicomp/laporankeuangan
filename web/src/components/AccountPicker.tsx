@@ -9,15 +9,17 @@ export function useAccounts() {
 }
 
 /** Pilih akun dengan mengetik kode atau nama. Hanya akun detail (bukan header) yang aktif. */
-export function AccountPicker({ value, onChange, autoFocus, placeholder = 'Ketik kode / nama akun…', includeInactive = false }: {
+export function AccountPicker({ value, onChange, autoFocus, placeholder = 'Ketik kode / nama akun…', includeInactive = false, exclude, types }: {
   value: string
   onChange: (kode: string) => void
   autoFocus?: boolean
   placeholder?: string
   includeInactive?: boolean
+  exclude?: string[]
+  types?: string[]
 }) {
   const accounts = useAccounts()
-  const options = useMemo(() => accounts.filter((a) => !a.is_header && (includeInactive || a.aktif)), [accounts, includeInactive])
+  const options = useMemo(() => accounts.filter((a) => !a.is_header && (includeInactive || a.aktif) && !exclude?.includes(a.kode) && (!types || types.includes(a.tipe))), [accounts, includeInactive, exclude, types])
   const current = accounts.find((a) => a.kode === value)
   const [q, setQ] = useState('')
   const [open, setOpen] = useState(false)

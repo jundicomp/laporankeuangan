@@ -34,7 +34,7 @@ export function JournalPage() {
         ))}
       </div>
       {tab === 'daftar' && <JournalList />}
-      {tab === 'buku-besar' && <LedgerTab initial={sp.get('akun') ?? ''} />}
+      {tab === 'buku-besar' && <LedgerTab key={`${sp.get('akun')}${sp.get('from')}${sp.get('to')}`} initial={sp.get('akun') ?? ''} initFrom={sp.get('from') ?? ''} initTo={sp.get('to') ?? ''} />}
       {tab === 'neraca-saldo' && <TrialTab onOpen={(k) => setTab('buku-besar', { akun: k })} />}
       {tab === 'akun' && <CoaTab />}
     </>
@@ -248,10 +248,10 @@ type LedgerData = {
   rows: { tgl: string; no: string; jurnal_id: string; jenis: string; keterangan: string; debit: number; kredit: number; saldo: number }[]
 }
 
-function LedgerTab({ initial }: { initial: string }) {
+function LedgerTab({ initial, initFrom, initTo }: { initial: string; initFrom: string; initTo: string }) {
   const [akun, setAkun] = useState(initial)
-  const [from, setFrom] = useState(monthStart().slice(0, 5) + '01-01')
-  const [to, setTo] = useState(today())
+  const [from, setFrom] = useState(initFrom || monthStart().slice(0, 5) + '01-01')
+  const [to, setTo] = useState(initTo || today())
   const [d, setD] = useState<LedgerData | null>(null)
   const [loading, setLoading] = useState(false)
   const [err, setErr] = useState('')

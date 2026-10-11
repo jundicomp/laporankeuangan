@@ -6,7 +6,7 @@
  *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.3.0';
+const SCHEMA_VERSION = '0.5.0';
 
 const SCHEMA = {
   // ---- master
@@ -21,10 +21,14 @@ const SCHEMA = {
   M_Pajak: ['id', 'kode', 'nama', 'tarif', 'berlaku_dari', 'berlaku_sampai', 'akun_id'],
   M_KasBank: ['id', 'nama', 'jenis', 'no_rek', 'akun_id', 'aktif'],
   // ---- transaksi
-  T_Dokumen: ['id', 'jenis', 'no', 'tgl', 'cabang_id', 'pihak_id', 'status', 'subtotal', 'diskon', 'pajak', 'total', 'sisa', 'jatuh_tempo', 'ref_id', 'catatan', 'dibuat_oleh', 'dibuat_pada'],
+  T_Dokumen: ['id', 'jenis', 'no', 'tgl', 'cabang_id', 'pihak_id', 'status', 'subtotal', 'diskon', 'pajak', 'total', 'sisa', 'jatuh_tempo', 'ref_id', 'catatan', 'dibuat_oleh', 'dibuat_pada',
+    'pihak_nama', 'referensi', 'diskon_nota', 'ppn_tarif', 'lines_json', 'akun_piutang', 'jurnal_id', 'saldo_awal',
+    'diposting_oleh', 'diposting_pada', 'diubah_pada', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada'],
   T_DokumenDetail: ['dok_id', 'baris', 'produk_id', 'deskripsi', 'qty', 'harga', 'diskon', 'pajak_id', 'gudang_id', 'hpp'],
-  T_Pembayaran: ['id', 'dok_id', 'tgl', 'metode', 'kasbank_id', 'jumlah', 'jurnal_id'],
-  T_KasBank: ['id', 'tgl', 'kasbank_id', 'jenis', 'akun_lawan', 'jumlah', 'keterangan', 'rekon', 'jurnal_id'],
+  T_Pembayaran: ['id', 'dok_id', 'tgl', 'metode', 'kasbank_id', 'jumlah', 'jurnal_id',
+    'no', 'potongan', 'akun_potongan', 'keterangan', 'referensi', 'kasbank_trx', 'status', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada'],
+  T_KasBank: ['id', 'tgl', 'kasbank_id', 'jenis', 'akun_lawan', 'jumlah', 'keterangan', 'rekon', 'jurnal_id',
+    'no', 'kasbank_tujuan', 'metode', 'kontak_tipe', 'kontak_id', 'kontak_nama', 'referensi', 'lines_json', 'status', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada', 'sumber_dok'],
   T_StokMutasi: ['id', 'tgl', 'produk_id', 'gudang_id', 'qty', 'harga', 'batch', 'serial', 'exp', 'sumber_dok'],
   T_FifoLayer: ['produk_id', 'gudang_id', 'tgl', 'qty_sisa', 'harga'],
   T_Aset: ['id', 'nama', 'kategori', 'cabang_id', 'tgl_beli', 'harga', 'umur_bln', 'residu', 'akun_aset', 'akun_akum', 'akun_beban', 'status'],
@@ -199,7 +203,7 @@ function seed_(ss) {
     ['schema_version', SCHEMA_VERSION],
     ['kerangka_sak', 'SAK EP'],
     ['zona_waktu', 'Asia/Jakarta'],
-    ['format_nomor_invoice', 'INV/{CAB}/{YYYY}/{####}'],
+    ['format_nomor_invoice', 'INV/{YYYY}/{MM}/{####}'],
   ]);
   put('M_Perusahaan', [['MB01', 'Perusahaan Saya', '', '', '', '', '', '[]', 'IDR', 'rata-rata', 'SAK EP', 1]]);
   put('M_KasBank', [
@@ -292,6 +296,11 @@ function upgradeSchema() {
     }
   });
   fixLegacyText_(ss, log);
+  try {
+    if (ensureBackupTrigger_()) log.push('+ backup otomatis harian pukul 02.00 (folder Drive "' + BACKUP_FOLDER_NAME + '")');
+  } catch (e) {
+    log.push('! backup otomatis belum aktif: ' + e.message);
+  }
   Object.keys(CACHED_TABLES).forEach(invalidate_);
   const roles = ensureRoles_();
   if (roles) log.push('+ ' + roles + ' peran bawaan');
@@ -305,6 +314,12 @@ function upgradeSchema() {
   if (!found) settings.appendRow(['schema_version', SCHEMA_VERSION]);
   const keys = sv.map(function (r) { return r[0]; });
   if (keys.indexOf('format_nomor_jurnal') < 0) settings.appendRow(['format_nomor_jurnal', '{JENIS}/{YYYY}/{MM}/{####}']);
+  const defaults = { format_nomor_invoice: 'INV/{YYYY}/{MM}/{####}', ppn_tarif: '11', top_default: '14' };
+  Object.keys(defaults).forEach(function (k) { if (keys.indexOf(k) < 0) settings.appendRow([k, defaults[k]]); });
+  for (var s2 = 1; s2 < sv.length; s2++) {
+    // nomor invoice versi awal memakai kode cabang; perusahaan tunggal cukup tahun/bulan
+    if (sv[s2][0] === 'format_nomor_invoice' && sv[s2][1] === 'INV/{CAB}/{YYYY}/{####}') settings.getRange(s2 + 1, 2).setValue(defaults.format_nomor_invoice);
+  }
   invalidate_('SYS_Setting');
 
   const props = PropertiesService.getScriptProperties();

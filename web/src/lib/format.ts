@@ -38,3 +38,41 @@ export function bulanID(ym: string, long = true) {
   const m = Number(ym.slice(5, 7)) - 1
   return `${(long ? BULAN_PANJANG : BULAN)[m]} ${ym.slice(0, 4)}`
 }
+
+export function tglPanjang(ymd: string) {
+  if (!ymd || !/^\d{4}-\d{2}-\d{2}/.test(ymd)) return ymd || '—'
+  return `${Number(ymd.slice(8, 10))} ${BULAN_PANJANG[Number(ymd.slice(5, 7)) - 1]} ${ymd.slice(0, 4)}`
+}
+
+export function addDays(ymd: string, n: number) {
+  const d = new Date(Date.UTC(Number(ymd.slice(0, 4)), Number(ymd.slice(5, 7)) - 1, Number(ymd.slice(8, 10))))
+  d.setUTCDate(d.getUTCDate() + n)
+  return d.toISOString().slice(0, 10)
+}
+
+export function daysBetween(a: string, b: string) {
+  const t = (s: string) => Date.UTC(Number(s.slice(0, 4)), Number(s.slice(5, 7)) - 1, Number(s.slice(8, 10)))
+  return Math.round((t(b) - t(a)) / 86400000)
+}
+
+/** Angka ke kata untuk invoice: 1250000 → "satu juta dua ratus lima puluh ribu rupiah". */
+export function terbilang(n: number): string {
+  const satuan = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas']
+  const f = (x: number): string => {
+    if (x < 12) return satuan[x]
+    if (x < 20) return f(x - 10) + ' belas'
+    if (x < 100) return f(Math.floor(x / 10)) + ' puluh' + (x % 10 ? ' ' + f(x % 10) : '')
+    if (x < 200) return 'seratus' + (x - 100 ? ' ' + f(x - 100) : '')
+    if (x < 1000) return f(Math.floor(x / 100)) + ' ratus' + (x % 100 ? ' ' + f(x % 100) : '')
+    if (x < 2000) return 'seribu' + (x - 1000 ? ' ' + f(x - 1000) : '')
+    if (x < 1e6) return f(Math.floor(x / 1000)) + ' ribu' + (x % 1000 ? ' ' + f(x % 1000) : '')
+    if (x < 1e9) return f(Math.floor(x / 1e6)) + ' juta' + (x % 1e6 ? ' ' + f(x % 1e6) : '')
+    if (x < 1e12) return f(Math.floor(x / 1e9)) + ' miliar' + (x % 1e9 ? ' ' + f(x % 1e9) : '')
+    return f(Math.floor(x / 1e12)) + ' triliun' + (x % 1e12 ? ' ' + f(x % 1e12) : '')
+  }
+  const whole = Math.floor(Math.abs(n))
+  const sen = Math.round((Math.abs(n) - whole) * 100)
+  let s = whole === 0 ? 'nol' : f(whole)
+  if (sen) s += ' koma ' + f(sen)
+  return (n < 0 ? 'minus ' : '') + s + ' rupiah'
+}

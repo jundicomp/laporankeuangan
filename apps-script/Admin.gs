@@ -108,7 +108,19 @@ function actionModuleSet_(p, ctx) {
 
 // ---------------------------------------------------------------- perusahaan
 
-const COMPANY_FIELDS = ['nama', 'npwp', 'alamat', 'telepon', 'email', 'kerangka_sak', 'metode_hpp'];
+const COMPANY_FIELDS = ['nama', 'npwp', 'alamat', 'telepon', 'email', 'kerangka_sak', 'metode_hpp', 'logo_url', 'rekening_json'];
+// pengaturan yang ikut disimpan dari form profil perusahaan (tampil di invoice)
+const COMPANY_SETTINGS = ['invoice_catatan', 'invoice_ttd_nama', 'invoice_ttd_jabatan', 'ppn_tarif', 'top_default'];
+
+function setSetting_(key, val) {
+  const sh = getSheet_('SYS_Setting');
+  const v = sh.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) {
+    if (v[i][0] === key) { sh.getRange(i + 1, 2).setValue(val); invalidate_('SYS_Setting'); return; }
+  }
+  sh.appendRow([key, val]);
+  invalidate_('SYS_Setting');
+}
 
 function actionCompanyUpdate_(p, ctx) {
   return withLock_(function () {
@@ -116,9 +128,30 @@ function actionCompanyUpdate_(p, ctx) {
     const patch = {};
     COMPANY_FIELDS.forEach(function (f) { if (p[f] !== undefined) patch[f] = String(p[f]).trim(); });
     if (patch.nama === '') throw new ApiError_('VALIDATION', 'Nama perusahaan wajib diisi.');
+    if (patch.logo_url && patch.logo_url.length > 45000) throw new ApiError_('VALIDATION', 'Logo terlalu besar. Pakai gambar yang lebih kecil.');
+    if (patch.logo_url && !/^(data:image\/|https:\/\/)/.test(patch.logo_url)) throw new ApiError_('VALIDATION', 'Format logo tidak dikenal.');
+    if (patch.rekening_json !== undefined) {
+      var rek;
+      try { rek = JSON.parse(patch.rekening_json || '[]'); } catch (e) { throw new ApiError_('VALIDATION', 'Data rekening tidak valid.'); }
+      if (!Array.isArray(rek)) throw new ApiError_('VALIDATION', 'Data rekening tidak valid.');
+      patch.rekening_json = JSON.stringify(rek.slice(0, 5).map(function (r) {
+        return { bank: String(r.bank || '').trim(), no: String(r.no || '').trim(), atas_nama: String(r.atas_nama || '').trim() };
+      }).filter(function (r) { return r.bank && r.no; }));
+    }
+    if (patch.npwp) patch.npwp = asText_(patch.npwp);
+    if (patch.telepon) patch.telepon = asText_(patch.telepon);
+    if (p.settings) {
+      COMPANY_SETTINGS.forEach(function (k) {
+        if (p.settings[k] === undefined) return;
+        var v = String(p.settings[k]).trim();
+        if ((k === 'ppn_tarif' || k === 'top_default') && (!isFinite(Number(v)) || Number(v) < 0)) throw new ApiError_('VALIDATION', k + ' harus angka ≥ 0.');
+        setSetting_(k, asText_(v));
+      });
+    }
     const r = updateWhere_('M_Perusahaan', 'id', comp.id, patch);
-    audit_(ctx, 'UBAH', 'M_Perusahaan', comp.id, r.before, r.after, '');
-    return r.after;
+    const slim = function (o) { const c = Object.assign({}, o); if (c.logo_url) c.logo_url = '(gambar ' + String(c.logo_url).length + ' karakter)'; return c; };
+    audit_(ctx, 'UBAH', 'M_Perusahaan', comp.id, slim(r.before), slim(r.after), '');
+    return readTable_('M_Perusahaan')[0];
   });
 }
 

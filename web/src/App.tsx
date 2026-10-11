@@ -1,10 +1,16 @@
 import type { ReactElement } from 'react'
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { createHashRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
 import { SessionProvider, useSession } from './auth/session'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
 import { NAV, type NavItem } from './nav'
 import { AuditPage } from './pages/Audit'
+import { BackupPage } from './pages/Backup'
+import { CashBankPage } from './pages/CashBank'
+import { MasterPage } from './pages/MasterData'
+import { ReportsPage } from './pages/Reports'
+import { ReceivablesPage } from './pages/Receivables'
+import { SalesPage } from './pages/Sales'
 import { JournalPage } from './pages/Journal'
 import { JournalFormPage } from './pages/JournalForm'
 import { PeriodsPage } from './pages/Periods'
@@ -21,6 +27,12 @@ const BUILT: Record<string, () => ReactElement> = {
   '/pengaturan': () => <SettingsPage />,
   '/jurnal': () => <JournalPage />,
   '/tutup-buku': () => <PeriodsPage />,
+  '/master': () => <MasterPage />,
+  '/kas-bank': () => <CashBankPage />,
+  '/laporan': () => <ReportsPage />,
+  '/backup': () => <BackupPage />,
+  '/penjualan': () => <SalesPage />,
+  '/piutang': () => <ReceivablesPage />,
 }
 
 const JOURNAL_FORM: NavItem = { path: '/jurnal/baru', label: 'Jurnal baru', icon: '≡', perm: 'jurnal.edit', module: 'akuntansi' }
@@ -56,12 +68,13 @@ function Gate() {
   )
 }
 
+// Data router dibutuhkan agar modal bisa menahan tombol Back browser (useBlocker).
+const router = createHashRouter([{ path: '*', element: <Gate /> }])
+
 export default function App() {
   return (
     <SessionProvider>
-      <HashRouter>
-        <Gate />
-      </HashRouter>
+      <RouterProvider router={router} />
     </SessionProvider>
   )
 }
