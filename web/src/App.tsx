@@ -11,6 +11,7 @@ import { MasterPage } from './pages/MasterData'
 import { ReportsPage } from './pages/Reports'
 import { PayablesPage, ReceivablesPage } from './pages/Receivables'
 import { SalesPage } from './pages/Sales'
+import { ReconcilePage } from './pages/Reconcile'
 import { PurchasesPage } from './pages/Purchases'
 import { InventoryPage } from './pages/Inventory'
 import { JournalPage } from './pages/Journal'
@@ -38,6 +39,7 @@ const BUILT: Record<string, () => ReactElement> = {
   '/pembelian': () => <PurchasesPage />,
   '/utang': () => <PayablesPage />,
   '/persediaan': () => <InventoryPage />,
+  '/rekonsiliasi': () => <ReconcilePage />,
 }
 
 const JOURNAL_FORM: NavItem = { path: '/jurnal/baru', label: 'Jurnal baru', icon: '≡', perm: 'jurnal.edit', module: 'akuntansi' }

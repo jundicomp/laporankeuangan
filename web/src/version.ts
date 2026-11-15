@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.6.3'
+export const APP_VERSION = '0.7.0'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,17 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.7.0', date: '2026-11-15', title: 'Langkah 6 — Siklus akuntansi PSAK lengkap',
+    changes: [
+      { type: 'baru', text: 'Neraca lajur (worksheet): neraca saldo, penyesuaian, neraca saldo disesuaikan, laba rugi, dan posisi keuangan dalam satu tabel.' },
+      { type: 'baru', text: 'Jurnal penutup tahunan otomatis: pendapatan & beban → ikhtisar laba rugi → saldo laba, prive ikut ditutup; bisa dibatalkan owner.' },
+      { type: 'baru', text: 'Laporan arus kas metode tidak langsung (operasi, investasi, pendanaan) yang dicocokkan dengan saldo kas.' },
+      { type: 'baru', text: 'Laporan perubahan ekuitas dan Catatan atas Laporan Keuangan (CALK) dengan angka otomatis & teks yang bisa diedit.' },
+      { type: 'baru', text: 'Rekonsiliasi bank: centang transaksi yang muncul di rekening koran, hitung setoran dalam perjalanan & pengeluaran beredar.' },
+      { type: 'tingkat', text: 'Laporan laba rugi dan dashboard mengabaikan jurnal penutup, jadi angka tahun yang sudah ditutup tetap terlihat.' },
+    ],
+  },
   {
     version: '0.6.3', date: '2026-11-15', title: 'Warna sidebar lebih kalem',
     changes: [

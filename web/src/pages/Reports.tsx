@@ -5,6 +5,7 @@ import { useSession } from '../auth/session'
 import { Banner, PageHead, Spinner } from '../components/ui'
 import { downloadXlsx, type SheetSpec } from '../lib/excel'
 import { bulanID, rp, tglID, today } from '../lib/format'
+import { CalkReport, CashflowReport, EquityReport, WorksheetReport } from './ReportsCycle'
 
 type Line = { kode: string; nama: string; amounts: number[]; computed?: boolean }
 type Income = {
@@ -47,9 +48,14 @@ export function ReportsPage() {
       <div className="tabs no-print">
         <button className={tab === 'laba-rugi' ? 'on' : ''} onClick={() => setSp({ tab: 'laba-rugi' })}>Laba rugi</button>
         <button className={tab === 'posisi' ? 'on' : ''} onClick={() => setSp({ tab: 'posisi' })}>Posisi keuangan (neraca)</button>
+        <button className={tab === 'arus-kas' ? 'on' : ''} onClick={() => setSp({ tab: 'arus-kas' })}>Arus kas</button>
+        <button className={tab === 'ekuitas' ? 'on' : ''} onClick={() => setSp({ tab: 'ekuitas' })}>Perubahan ekuitas</button>
+        <button className={tab === 'calk' ? 'on' : ''} onClick={() => setSp({ tab: 'calk' })}>CALK</button>
+        <button className={tab === 'lajur' ? 'on' : ''} onClick={() => setSp({ tab: 'lajur' })}>Neraca lajur</button>
         <Link className="tab-link" to="/jurnal?tab=neraca-saldo">Neraca saldo ↗</Link>
       </div>
-      {tab === 'laba-rugi' ? <IncomeReport /> : <BalanceReport />}
+      {tab === 'laba-rugi' ? <IncomeReport /> : tab === 'posisi' ? <BalanceReport /> : tab === 'arus-kas' ? <CashflowReport />
+        : tab === 'ekuitas' ? <EquityReport /> : tab === 'calk' ? <CalkReport /> : <WorksheetReport />}
     </>
   )
 }

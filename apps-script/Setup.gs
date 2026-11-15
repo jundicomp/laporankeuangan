@@ -6,7 +6,7 @@
  *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.6.1';
+const SCHEMA_VERSION = '0.7.0';
 
 const SCHEMA = {
   // ---- master
@@ -39,7 +39,9 @@ const SCHEMA = {
   // ---- akuntansi
   T_Jurnal: ['id', 'no', 'tgl', 'jenis', 'ref_dok', 'cabang_id', 'keterangan', 'status', 'balik_otomatis', 'dibuat_oleh', 'dibuat_pada', 'diposting_oleh', 'diposting_pada',
     'referensi', 'total', 'jurnal_asal', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada'],
-  T_JurnalDetail: ['jurnal_id', 'baris', 'akun_id', 'memo', 'divisi', 'proyek', 'debit', 'kredit'],
+  T_JurnalDetail: ['jurnal_id', 'baris', 'akun_id', 'memo', 'divisi', 'proyek', 'debit', 'kredit', 'rekon'],
+  T_Rekon: ['id', 'kasbank_id', 'tgl', 'saldo_koran', 'saldo_buku', 'transit', 'beredar', 'selisih', 'status', 'catatan', 'dibuat_oleh', 'dibuat_pada', 'diubah_oleh', 'diubah_pada'],
+  T_CALK: ['tahun', 'kode', 'isi', 'diubah_oleh', 'diubah_pada'],
   SYS_Periode: ['periode', 'status', 'diubah_oleh', 'diubah_pada', 'alasan'],
   R_SaldoAkun: ['periode', 'akun_id', 'debit', 'kredit'],
   // ---- sistem

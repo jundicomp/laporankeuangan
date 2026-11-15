@@ -33,6 +33,16 @@ laporankeuangan/
 
 ---
 
+## Update ke Langkah 6 (dari Langkah 5)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Report`, `Sales`.
+2. Tambah 3 file baru (**+ → Skrip**): `Closing`, `Recon`, `Calk`.
+3. Simpan, jalankan **upgradeSchema** (menambah tab `T_Rekon`, `T_CALK`, dan kolom `rekon` di `T_JurnalDetail`).
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+
+Yang baru: **Laporan** → tab Arus kas, Perubahan ekuitas, CALK, Neraca lajur. **Tutup Buku** → kartu "Tutup buku tahunan" (jurnal penutup). **Rekonsiliasi Bank** muncul di menu setelah modul *Rekonsiliasi bank* diaktifkan di Pengaturan.
+
 ## Update ke Langkah 5 (dari Langkah 4)
 
 1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Ledger`, `Master`, `Cash`, `Sales`.
@@ -186,6 +196,15 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - Pemakaian bahan: Dr akun pilihan (default 5-1101 HPP) / Cr Persediaan. Stok opname: selisih ke 5-1301 Selisih persediaan. Stok awal tidak membuat jurnal.
 - Tagihan pembelian tidak bisa dibatalkan bila barangnya sudah terjual/terpakai sehingga stok akan minus.
 
+## Aturan siklus akhir periode
+
+- **Neraca lajur**: akun laba rugi memakai mutasi periode, akun neraca memakai saldo kumulatif; kolom penyesuaian = jurnal JP dalam periode. Jurnal penutup tidak ikut.
+- **Jurnal penutup (JT)** bertanggal akhir tahun buku: pendapatan & beban → 3-9999 Ikhtisar laba rugi → 3-2101 Saldo laba; prive (3-3101) ikut ditutup ke saldo laba (bisa dimatikan). Hanya satu per tahun buku, hanya setelah tahun berakhir, dan periode akhir tahun harus masih terbuka. Pembatalannya membuat jurnal JT pembalik.
+- Laporan laba rugi dan dashboard selalu mengabaikan JT, jadi angka tahun yang sudah ditutup tetap tampil; neraca & perubahan ekuitas memperhitungkannya.
+- **Arus kas** metode tidak langsung: laba bersih + akumulasi penyusutan ± perubahan aset lancar & liabilitas jangka pendek (operasi), perubahan aset tetap (investasi), pinjaman bank & ekuitas non-laba (pendanaan). Kenaikan kas dicocokkan dengan saldo kas & bank; jurnal saldo awal (SA) dihitung sebagai saldo pembuka.
+- **CALK**: angka per catatan diambil otomatis (tahun ini vs tahun lalu); teks tiap catatan bisa diubah per tahun buku dan dikembalikan ke teks bawaan.
+- **Rekonsiliasi bank**: baris jurnal ke akun rekening yang muncul di koran dicentang. Saldo hitung = saldo buku − setoran dalam perjalanan + pengeluaran beredar; final hanya bila sama dengan saldo koran. Transaksi Kas & Bank yang sudah cocok tidak bisa dibatalkan sampai rekonsiliasinya dibuka kembali.
+
 ## Berikutnya
 
-Siklus PSAK lengkap (neraca lajur, jurnal penutup, arus kas, CALK, rekonsiliasi bank) → aset tetap, payroll, pajak → anggaran, paket laporan bankable, multi perusahaan.
+Aset tetap & penyusutan, payroll, pajak → anggaran, paket laporan bankable, multi perusahaan.

@@ -4,13 +4,15 @@
  * Setiap laporan bisa membandingkan beberapa kolom periode sekaligus.
  */
 
-function netByAccount_(from, to) {
+/** noClosing: abaikan jurnal penutup (JT) — dipakai laporan laba rugi supaya tahun yang sudah ditutup tetap terlihat. */
+function netByAccount_(from, to, noClosing) {
   const eff = effectiveIds_();
   const m = {};
   journalLines_().forEach(function (d) {
     if (!eff.ids[d.jurnal_id]) return;
     const t = eff.heads[d.jurnal_id].tgl;
     if (t < from || t > to) return;
+    if (noClosing && eff.heads[d.jurnal_id].jenis === 'JT') return;
     m[d.akun_id] = (m[d.akun_id] || 0) + cents_(d.debit) - cents_(d.kredit);
   });
   return m;
@@ -45,11 +47,11 @@ const INCOME_SECTIONS = [
   { key: 'pajak', title: 'Beban pajak penghasilan', tipe: 'pajak', sign: 1 },
 ];
 
-function incomeColumns_(ranges, includeZero) {
+function incomeColumns_(ranges, includeZero, noClosing) {
   const accs = readTable_('M_Akun').map(function (a) { a.kode = String(a.kode); return a; })
     .filter(function (a) { return !bool_(a.is_header); })
     .sort(function (a, b) { return a.kode.localeCompare(b.kode, undefined, { numeric: true }); });
-  const nets = ranges.map(function (r) { return netByAccount_(r.from, r.to); });
+  const nets = ranges.map(function (r) { return netByAccount_(r.from, r.to, noClosing); });
   const sections = {};
   INCOME_SECTIONS.forEach(function (s) {
     const rows = accs.filter(function (a) { return a.tipe === s.tipe; }).map(function (a) {
@@ -75,7 +77,7 @@ function actionReportIncome_(p) {
   const ranges = (p.ranges || []).map(function (r) { return { from: ymd_(r.from), to: ymd_(r.to), label: r.label || '' }; });
   if (!ranges.length || ranges.length > 4) throw new ApiError_('VALIDATION', 'Pilih 1–4 kolom periode.');
   ranges.forEach(function (r) { if (r.from > r.to) throw new ApiError_('VALIDATION', 'Tanggal awal setelah tanggal akhir.'); });
-  const out = incomeColumns_(ranges, !!p.includeZero);
+  const out = incomeColumns_(ranges, !!p.includeZero, true);
   out.ranges = ranges;
   out.kerangka = getSetting_('kerangka_sak') || 'SAK EP';
   return out;

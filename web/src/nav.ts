@@ -18,6 +18,7 @@ export const NAV: NavItem[] = [
   { group: 'Transaksi', path: '/penjualan', label: 'Penjualan', icon: '↗', perm: 'penjualan.view', module: 'penjualan' },
   { path: '/pembelian', label: 'Pembelian', icon: '↙', perm: 'pembelian.view', module: 'pembelian' },
   { path: '/kas-bank', label: 'Kas & Bank', icon: '◎', perm: 'kas.view', module: 'kasbank' },
+  { path: '/rekonsiliasi', label: 'Rekonsiliasi Bank', icon: '⇋', perm: 'kas.view', module: 'rekonbank' },
   { path: '/piutang', label: 'Piutang', icon: '→', perm: 'penjualan.view', module: 'piutang' },
   { path: '/utang', label: 'Utang', icon: '←', perm: 'pembelian.view', module: 'utang' },
   { path: '/persediaan', label: 'Persediaan', icon: '▦', perm: 'persediaan.view', module: 'persediaan' },

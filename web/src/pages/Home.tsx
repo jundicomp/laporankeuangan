@@ -23,8 +23,8 @@ type Dash = {
 const ROADMAP = [
   { step: 'Langkah 1–4', title: 'MVP: akses & audit, jurnal & buku besar, kas & bank, laporan, invoice & piutang, dashboard', done: true },
   { step: 'Langkah 5', title: 'Pembelian, utang supplier & persediaan (HPP otomatis)', done: true },
-  { step: 'Berikutnya', title: 'Siklus PSAK lengkap: neraca lajur, jurnal penutup, arus kas, CALK' },
-  { step: 'Lalu', title: 'Aset tetap & penyusutan, payroll, pajak' },
+  { step: 'Langkah 6', title: 'Siklus PSAK lengkap: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank', done: true },
+  { step: 'Berikutnya', title: 'Aset tetap & penyusutan, payroll, pajak' },
   { step: 'Terakhir', title: 'Anggaran, paket laporan bankable, multi perusahaan' },
 ]
 

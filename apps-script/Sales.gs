@@ -564,7 +564,7 @@ function actionDashboard_(p, ctx) {
   var ytdP = 0, ytdL = 0;
   const signIncome = { pendapatan: -1, lain: -1, hpp: -1, beban: -1, pajak: -1 };
   journalLines_().forEach(function (d) {
-    if (!eff.ids[d.jurnal_id]) return;
+    if (!eff.ids[d.jurnal_id] || eff.heads[d.jurnal_id].jenis === 'JT') return;
     const t = eff.heads[d.jurnal_id].tgl;
     if (t < from || t > to) return;
     const a = accs[d.akun_id];

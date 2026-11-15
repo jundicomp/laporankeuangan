@@ -80,6 +80,17 @@ const ROUTES = {
   // laporan
   'report.income': { fn: actionReportIncome_, perm: 'laporan.view', module: 'laporan' },
   'report.balance': { fn: actionReportBalance_, perm: 'laporan.view', module: 'laporan' },
+  'report.worksheet': { fn: actionReportWorksheet_, perm: 'laporan.view', module: 'laporan' },
+  'report.cashflow': { fn: actionReportCashflow_, perm: 'laporan.view', module: 'laporan' },
+  'report.equity': { fn: actionReportEquity_, perm: 'laporan.view', module: 'laporan' },
+  'calk.get': { fn: actionCalkGet_, perm: 'laporan.view', module: 'laporan' },
+  'calk.save': { fn: actionCalkSave_, perm: 'periode.lock', module: 'laporan' },
+  'closing.preview': { fn: actionClosingPreview_, perm: 'jurnal.view', module: 'laporan' },
+  'closing.post': { fn: actionClosingPost_, perm: 'periode.lock', module: 'laporan' },
+  'closing.void': { fn: actionClosingVoid_, perm: 'periode.reopen', module: 'laporan' },
+  'recon.get': { fn: actionReconGet_, perm: 'kas.view', module: 'rekonbank' },
+  'recon.save': { fn: actionReconSave_, perm: 'kas.edit', module: 'rekonbank' },
+  'recon.reopen': { fn: actionReconReopen_, perm: 'kas.edit', module: 'rekonbank' },
   // backup & impor
   'backup.list': { fn: actionBackupList_, perm: 'backup.run' },
   'backup.run': { fn: actionBackupRun_, perm: 'backup.run' },
