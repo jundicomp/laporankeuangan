@@ -3,7 +3,7 @@ import { call, getApiUrl, getToken, setAuthLostHandler, setToken, errorText } fr
 
 export type Module = { kode: string; nama: string; aktif: boolean; wajib: boolean; bergantung_pada: string }
 export type Boot = {
-  user: { id: string; username: string; nama: string; email?: string; role_id: string; role_nama: string; cabang_akses: string }
+  user: { id: string; username: string; nama: string; email?: string; role_id: string; role_nama: string; cabang_akses: string; developer?: boolean }
   perms: string[]
   company: Record<string, string>
   settings: Record<string, string>

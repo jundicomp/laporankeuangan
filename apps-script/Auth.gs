@@ -29,9 +29,25 @@ function normUsername_(u) {
   return s;
 }
 
+/**
+ * Akun pengembang aplikasi (Jundezain). Hak penuh seperti owner, tetapi tidak tampil di daftar pengguna
+ * klien, tidak bisa diubah oleh pengguna lain, dan satu-satunya yang melihat progres pembangunan & riwayat update.
+ */
+const DEVELOPER_EMAILS = ['jundicomp@gmail.com'];
+function isDeveloperEmail_(email) { return DEVELOPER_EMAILS.indexOf(plain_(email).toLowerCase()) >= 0; }
+function isDeveloperUser_(u) { return !!u && isDeveloperEmail_(u.email); }
+function isDeveloper_(session) {
+  if (!session) return false;
+  return isDeveloperUser_(readTable_('SYS_User').filter(function (x) { return x.id === session.user_id; })[0]);
+}
+/** Email pengembang hanya boleh dipasang oleh pengembang sendiri. */
+function guardDeveloperEmail_(email, ctx) {
+  if (email && isDeveloperEmail_(email) && !isDeveloper_(ctx && ctx.session)) throw new ApiError_('VALIDATION', 'Email ini sudah dipakai sistem. Gunakan email lain.');
+}
+
 function publicUser_(u) {
   return {
-    id: u.id, username: u.username, nama: u.nama, email: u.email, role_id: u.role_id,
+    id: u.id, username: u.username, nama: u.nama, email: u.email, role_id: u.role_id, pengembang: isDeveloperUser_(u),
     cabang_akses: u.cabang_akses, aktif: bool_(u.aktif),
     terkunci: !!(u.terkunci_sampai && new Date(u.terkunci_sampai) > new Date()),
   };
@@ -306,8 +322,10 @@ function actionResetConfirm_(p) {
 function actionChangeEmail_(p, ctx) {
   const email = plain_(p.email);
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ApiError_('VALIDATION', 'Format email tidak valid.');
+  guardDeveloperEmail_(email, ctx);
   return withLock_(function () {
     const u = readTable_('SYS_User').filter(function (x) { return x.id === ctx.session.user_id; })[0];
+    if (isDeveloperUser_(u) && !isDeveloperEmail_(email)) throw new ApiError_('VALIDATION', 'Email akun pengembang tidak bisa diganti dari aplikasi.');
     if (hashPassword_(p.password || '', u.salt) !== u.hash_password) throw new ApiError_('VALIDATION', 'Password salah.');
     updateWhere_('SYS_User', 'id', u.id, { email: email });
     audit_(ctx, 'GANTI_EMAIL', 'SYS_User', u.id, { email: u.email }, { email: email }, '');

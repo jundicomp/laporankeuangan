@@ -3,7 +3,7 @@ import { batch, call, errorText } from '../api/client'
 import { useSession } from '../auth/session'
 import { Banner, Field, Modal, PageHead, Req, Spinner, fmtTime } from '../components/ui'
 
-type User = { id: string; username: string; nama: string; email: string; role_id: string; aktif: boolean; terkunci: boolean }
+type User = { id: string; username: string; nama: string; email: string; role_id: string; aktif: boolean; terkunci: boolean; pengembang?: boolean }
 type Role = { id: string; nama: string; izin: string[] }
 type Perm = { kode: string; nama: string }
 type LoginRow = { waktu: string; username: string; status: string; keterangan: string }
@@ -64,7 +64,7 @@ export function UsersPage() {
                   <tbody>
                     {users.map((u) => (
                       <tr key={u.id} className={`click ${edit !== 'new' && edit?.id === u.id ? 'sel' : ''}`} onClick={() => { setFlash(''); setEdit(u) }}>
-                        <td>{u.nama}{u.id === boot?.user.id && <span className="pill n">Anda</span>}</td>
+                        <td>{u.nama}{u.id === boot?.user.id && <span className="pill n">Anda</span>}{u.pengembang && <span className="pill b" title="Tidak terlihat oleh pengguna lain">Pengembang</span>}</td>
                         <td className="mono">{u.username}</td>
                         <td>{roleName(u.role_id)}</td>
                         <td>{!u.aktif ? <span className="pill n">Nonaktif</span> : u.terkunci ? <span className="pill r">Terkunci</span> : <span className="pill g">Aktif</span>}</td>

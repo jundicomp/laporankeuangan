@@ -34,7 +34,8 @@ function actionBootstrap_(p, ctx) {
   const settings = {};
   readTable_('SYS_Setting').forEach(function (r) { settings[r.kunci] = r.nilai; });
   return {
-    user: { id: s.user_id, username: s.username, nama: s.nama, email: (readTable_('SYS_User').filter(function (u) { return u.id === s.user_id; })[0] || {}).email || '', role_id: s.role_id, role_nama: role.nama || s.role_id, cabang_akses: s.cabang_akses },
+    user: { id: s.user_id, username: s.username, nama: s.nama, email: (readTable_('SYS_User').filter(function (u) { return u.id === s.user_id; })[0] || {}).email || '', role_id: s.role_id, role_nama: role.nama || s.role_id, cabang_akses: s.cabang_akses,
+      developer: isDeveloper_(s) },
     perms: permsOf_(s.role_id),
     company: comp,
     settings: settings,
@@ -157,8 +158,9 @@ function actionCompanyUpdate_(p, ctx) {
 
 // ---------------------------------------------------------------- pengguna
 
-function actionUserList_() {
-  return readTable_('SYS_User').map(publicUser_);
+function actionUserList_(p, ctx) {
+  const dev = isDeveloper_(ctx && ctx.session);
+  return readTable_('SYS_User').filter(function (u) { return dev || !isDeveloperUser_(u); }).map(publicUser_);
 }
 
 function actionRoleList_() {
@@ -178,6 +180,7 @@ function actionUserCreate_(p, ctx) {
   if (!nama) throw new ApiError_('VALIDATION', 'Nama wajib diisi.');
   validatePassword_(p.password);
   if (!roleOf_(p.role_id)) throw new ApiError_('VALIDATION', 'Peran tidak dikenal.');
+  guardDeveloperEmail_(p.email, ctx);
   return withLock_(function () {
     if (readTable_('SYS_User').some(function (x) { return x.username === username; })) {
       throw new ApiError_('VALIDATION', 'Username sudah dipakai.');
@@ -199,6 +202,10 @@ function actionUserUpdate_(p, ctx) {
     const users = readTable_('SYS_User');
     const u = users.filter(function (x) { return x.id === p.id; })[0];
     if (!u) throw new ApiError_('NOT_FOUND', 'Pengguna tidak ditemukan.');
+    const dev = isDeveloper_(ctx.session);
+    if (isDeveloperUser_(u) && !dev) throw new ApiError_('NOT_FOUND', 'Pengguna tidak ditemukan.');
+    if (p.email !== undefined) guardDeveloperEmail_(p.email, ctx);
+    if (isDeveloperUser_(u) && p.email !== undefined && !isDeveloperEmail_(p.email)) throw new ApiError_('VALIDATION', 'Email akun pengembang tidak bisa diganti dari aplikasi.');
     const patch = {};
     if (p.nama !== undefined) patch.nama = String(p.nama).trim();
     if (p.email !== undefined) patch.email = plain_(p.email);
@@ -218,8 +225,9 @@ function actionUserUpdate_(p, ctx) {
       throw new ApiError_('VALIDATION', 'Tidak bisa mengubah peran atau menonaktifkan akun sendiri.');
     }
     const losingOwner = u.role_id === 'owner' && ((patch.role_id && patch.role_id !== 'owner') || patch.aktif === false);
-    if (losingOwner) {
-      const owners = users.filter(function (x) { return x.role_id === 'owner' && bool_(x.aktif); });
+    if (losingOwner && !isDeveloperUser_(u)) {
+      // akun pengembang tidak dihitung: klien harus tetap punya owner sendiri
+      const owners = users.filter(function (x) { return x.role_id === 'owner' && bool_(x.aktif) && !isDeveloperUser_(x); });
       if (owners.length <= 1) throw new ApiError_('VALIDATION', 'Harus ada minimal satu owner aktif.');
     }
     const r = updateWhere_('SYS_User', 'id', u.id, patch);

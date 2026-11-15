@@ -52,6 +52,7 @@ const readMini = () => { try { return localStorage.getItem('neraca.side') === 'm
 
 export default function Layout() {
   const { boot, company, signOut } = useSession()
+  const dev = !!boot?.user.developer
   const groups = useGroups()
   const loc = useLocation()
   const nav = useNavigate()
@@ -130,11 +131,19 @@ export default function Layout() {
           })}
         </nav>
 
-        <button type="button" className="side-foot" onClick={() => { hideTip(); setLog(true) }} onMouseEnter={showTip(`${APP_NAME} v${APP_VERSION} · riwayat update`)} onMouseLeave={hideTip}>
-          <span className="ver-dot" />
-          <span className="lbl"><b>{APP_NAME}</b> v{APP_VERSION}<small>Riwayat update</small></span>
-          <span className="ver-mini">v{APP_VERSION.split('.').slice(0, 2).join('.')}</span>
-        </button>
+        {dev ? (
+          <button type="button" className="side-foot" onClick={() => { hideTip(); setLog(true) }} onMouseEnter={showTip(`${APP_NAME} v${APP_VERSION} · riwayat update`)} onMouseLeave={hideTip}>
+            <span className="ver-dot" />
+            <span className="lbl"><b>{APP_NAME}</b> v{APP_VERSION}<small>Riwayat update</small></span>
+            <span className="ver-mini">v{APP_VERSION.split('.').slice(0, 2).join('.')}</span>
+          </button>
+        ) : (
+          <div className="side-foot static" onMouseEnter={showTip(`${APP_NAME} v${APP_VERSION}`)} onMouseLeave={hideTip}>
+            <span className="ver-dot" />
+            <span className="lbl"><b>{APP_NAME}</b> v{APP_VERSION}</span>
+            <span className="ver-mini">v{APP_VERSION.split('.').slice(0, 2).join('.')}</span>
+          </div>
+        )}
       </aside>
  {tip && <div className="side-tip" style={{ top: tip.y }}>{tip.text}</div>}
       <div className="side-scrim" onClick={() => setSideOpen(false)} />
@@ -162,7 +171,7 @@ export default function Layout() {
           <Outlet />
         </main>
       </div>
-      {log && <ChangelogModal onClose={() => setLog(false)} />}
+      {log && dev && <ChangelogModal onClose={() => setLog(false)} />}
     </div>
   )
 }

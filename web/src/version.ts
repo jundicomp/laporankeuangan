@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '1.0.1'
+export const APP_VERSION = '1.0.2'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,13 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '1.0.2', date: '2026-11-15', title: 'Akun pengembang',
+    changes: [
+      { type: 'baru', text: 'Akun pengembang (jundicomp@gmail.com): akses penuh, tidak tampil dan tidak bisa diubah dari daftar pengguna klien.' },
+      { type: 'tingkat', text: 'Progres pembangunan di dashboard dan riwayat update di kaki sidebar hanya terlihat oleh akun pengembang.' },
+    ],
+  },
   {
     version: '1.0.1', date: '2026-11-15', title: 'Update server sekali klik',
     changes: [

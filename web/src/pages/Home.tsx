@@ -160,12 +160,12 @@ export function HomePage() {
             )}
           </div>
 
-          <div className="card">
-            <h3>Progres pembangunan</h3>
+          {boot?.user.developer && <div className="card">
+            <h3>Progres pembangunan <span className="pill b">khusus pengembang</span></h3>
             <ol className="roadmap">
               {ROADMAP.map((r, i) => <li key={i} className={r.done ? 'done' : ''}><span className="dot" /><b>{r.step}</b><span>{r.title}</span></li>)}
             </ol>
-          </div>
+          </div>}
         </>
       )}
     </>
