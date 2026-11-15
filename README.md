@@ -3,7 +3,7 @@
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
 - Web: https://jundicomp.github.io/laporankeuangan/
-- Status: **Langkah 7 selesai** — aset tetap & penyusutan, payroll (BPJS, PPh 21 TER & tahunan, slip gaji), pajak per masa + setor & kalender. Langkah 6: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank. Langkah 5: pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
+- Status: **Langkah 8 selesai** — anggaran per bulan, realisasi vs anggaran & proyeksi, analisis rasio keuangan. Langkah 7: aset tetap & penyusutan, payroll (BPJS, PPh 21 TER & tahunan, slip gaji), pajak per masa + setor & kalender. Langkah 6: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank. Langkah 5: pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
 
 ```
 laporankeuangan/
@@ -28,6 +28,7 @@ laporankeuangan/
 │  ├─ Asset.gs                    aset tetap, penyusutan bulanan, pelepasan
 │  ├─ Payroll.gs                  karyawan, penggajian, BPJS, PPh 21
 │  ├─ Tax.gs                      rekap pajak per masa, setor, kalender
+│  ├─ Budget.gs                   anggaran, realisasi vs anggaran, analisis rasio
 │  └─ Backup.gs                   backup harian ke Drive, impor saldo awal
 └─ web/src/
    ├─ api/client.ts               panggilan API + token + batch
@@ -38,6 +39,15 @@ laporankeuangan/
 ```
 
 ---
+
+## Update ke Langkah 8 (sekaligus Langkah 6 & 7, dari Langkah 5)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Ledger`, `Report`, `Sales`.
+2. Tambah 7 file baru (**+ → Skrip**): `Closing`, `Recon`, `Calk`, `Asset`, `Payroll`, `Tax`, `Budget`.
+3. Jalankan **upgradeSchema** → log harus `0.9.0`.
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+6. **Pengaturan → Aktivasi modul**: nyalakan Aset tetap, Payroll, Pajak, Anggaran & proyeksi (dan Rekonsiliasi bank bila perlu).
 
 ## Update ke Langkah 7 (dari Langkah 5 — sekaligus Langkah 6)
 
@@ -230,6 +240,12 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - **PPh 21** (PP 58/2023, PMK 168/2023): Jan–Nov TER bulanan kategori A/B/C × bruto (termasuk premi JKK, JKM, BPJS Kesehatan perusahaan). Desember atau bulan karyawan keluar: Pasal 17 atas neto setahun (bruto − biaya jabatan 5% maks Rp500 rb/bulan − iuran JHT & JP karyawan − PTKP) dikurangi yang sudah dipotong; bisa minus (dikembalikan). Penggajian yang sudah diposting tidak bisa dibatalkan bila bulan sesudahnya sudah diposting.
 - **Pajak per masa** diambil dari mutasi akun 2-1201/1-1601 (PPN), 2-1202 (PPh 21), 2-1203 (PPh 23), 2-1204 (PPh 4(2)); PPh final UMKM 0,5% dari omzet pendapatan (opsional); PPh 25 dari pengaturan. Setor PPN = Dr PPN keluaran, Cr PPN masukan, Cr kas (kurang bayar); lebih bayar tetap di PPN masukan. Jatuh tempo: setor tgl 15, lapor PPh tgl 20, lapor PPN akhir bulan berikutnya (PMK 81/2024), Sabtu/Minggu digeser ke Senin.
 
+## Aturan anggaran & analisis rasio
+
+- **Anggaran** disimpan per akun laba rugi per bulan di `T_Anggaran` (angka positif searah saldo normal). Menyimpan mengganti seluruh anggaran tahun buku itu; tahun lain tidak tersentuh. Bisa disalin dari realisasi tahun lalu + pertumbuhan %.
+- **Realisasi vs anggaran**: realisasi dari buku besar tanpa jurnal penutup. Proyeksi setahun = realisasi s/d bulan terpilih + anggaran bulan-bulan sisanya. Dashboard memperingatkan bila beban > anggaran lebih dari 5% atau pendapatan < 90% anggaran.
+- **Rasio** (menu Laporan → Analisis rasio, juga di Anggaran & Analisis): likuiditas, solvabilitas (DER, DAR, utang bank/EBITDA, ICR), profitabilitas (margin, ROA, ROE), aktivitas (DSO, DIO, DPO, siklus kas, perputaran aset). Saldo rata-rata = (awal + akhir)/2, saldo awal (SA) dalam periode dihitung pembuka; rasio tahunan disetahunkan. Pembanding = periode yang sama tahun lalu.
+
 ## Berikutnya
 
-Anggaran & analisis rasio → paket laporan bankable, multi perusahaan.
+Paket laporan bankable → multi perusahaan.

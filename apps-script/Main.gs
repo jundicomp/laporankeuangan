@@ -119,6 +119,10 @@ const ROUTES = {
   'tax.pay': { fn: actionTaxPay_, perm: 'pajak.edit', module: 'pajak' },
   'tax.payVoid': { fn: actionTaxPayVoid_, perm: 'pajak.edit', module: 'pajak' },
   'tax.settings': { fn: actionTaxSettings_, perm: 'pajak.edit', module: 'pajak' },
+  // anggaran & analisis
+  'budget.get': { fn: actionBudgetGet_, perm: 'anggaran.view', module: 'anggaran' },
+  'budget.save': { fn: actionBudgetSave_, perm: 'anggaran.edit', module: 'anggaran' },
+  'ratio.get': { fn: actionRatioGet_, perm: 'laporan.view', module: 'laporan' },
   // backup & impor
   'backup.list': { fn: actionBackupList_, perm: 'backup.run' },
   'backup.run': { fn: actionBackupRun_, perm: 'backup.run' },

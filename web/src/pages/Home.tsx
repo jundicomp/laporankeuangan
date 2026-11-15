@@ -25,8 +25,8 @@ const ROADMAP = [
   { step: 'Langkah 5', title: 'Pembelian, utang supplier & persediaan (HPP otomatis)', done: true },
   { step: 'Langkah 6', title: 'Siklus PSAK lengkap: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank', done: true },
   { step: 'Langkah 7', title: 'Aset tetap & penyusutan, payroll (BPJS, PPh 21 TER), pajak per masa & kalender', done: true },
-  { step: 'Berikutnya', title: 'Anggaran & analisis rasio' },
-  { step: 'Terakhir', title: 'Paket laporan bankable, multi perusahaan' },
+  { step: 'Langkah 8', title: 'Anggaran per bulan, realisasi vs anggaran & proyeksi, analisis rasio keuangan', done: true },
+  { step: 'Berikutnya', title: 'Paket laporan bankable, multi perusahaan' },
 ]
 
 function greet() {

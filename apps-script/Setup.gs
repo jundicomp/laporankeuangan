@@ -6,7 +6,7 @@
  *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.8.0';
+const SCHEMA_VERSION = '0.9.0';
 
 const SCHEMA = {
   // ---- master
@@ -37,7 +37,7 @@ const SCHEMA = {
     'kode', 'metode', 'mulai_susut', 'akum_awal', 'akum_awal_per', 'sumber', 'akun_lawan', 'kasbank_id', 'kasbank_trx', 'jurnal_id', 'lokasi', 'catatan',
     'tgl_lepas', 'cara_lepas', 'harga_lepas', 'jurnal_lepas', 'kas_lepas', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada'],
   T_Susut: ['id', 'periode', 'aset_id', 'dari', 'sampai', 'jumlah', 'jurnal_id', 'status', 'sumber', 'dibuat_oleh', 'dibuat_pada'],
-  T_Anggaran: ['periode', 'cabang_id', 'divisi', 'akun_id', 'jumlah'],
+  T_Anggaran: ['periode', 'cabang_id', 'divisi', 'akun_id', 'jumlah', 'diubah_oleh', 'diubah_pada'],
   T_Payroll: ['periode', 'karyawan_id', 'komponen_json', 'bruto', 'pph21', 'neto', 'status', 'jurnal_id',
     'run_id', 'kode', 'nama', 'jabatan', 'ptkp', 'gaji_pokok', 'tunjangan', 'lembur', 'bonus', 'thr', 'potongan_absen', 'kasbon',
     'bpjs_kes_p', 'bpjs_kes_k', 'jht_p', 'jht_k', 'jp_p', 'jp_k', 'jkk', 'jkm', 'ter_kategori', 'ter_tarif', 'metode', 'akhir',

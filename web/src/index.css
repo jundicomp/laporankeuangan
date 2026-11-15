@@ -588,3 +588,21 @@ input.num { text-align: right; font-variant-numeric: tabular-nums; }
 .slip-net { margin: 14px 0 8px; padding: 10px 12px; background: #f1f6f4; border: 1px solid #cfe3da; border-radius: 6px; font-size: 14px; display: flex; justify-content: space-between; }
 .slip-net b { font-size: 17px; }
 @media print { .slip-net { background: #fff; } }
+
+/* ---------------------------------------------------------------- Langkah 8 */
+.budget-chart { width: 100%; height: auto; display: block; }
+.legend .lg-b, .legend .lg-r { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin: 0 4px 0 10px; vertical-align: middle; }
+.legend .lg-b { background: #b9c7d6; } .legend .lg-r { background: #0f5c4a; }
+.budget-tbl tr.grand td { font-weight: 800; border-top: 2px solid var(--ink); }
+.budget-grid { max-height: 62vh; overflow: auto; }
+.budget-grid td.num input { width: 92px; text-align: right; padding: 5px 6px; font-size: 12.5px; }
+.budget-grid td.num input.tot-in { width: 108px; background: #f1f6f4; font-weight: 600; }
+.budget-grid .sticky { position: sticky; left: 0; background: #fff; z-index: 1; min-width: 210px; max-width: 240px; }
+.budget-grid tr.sub .sticky, .budget-grid tr.key .sticky { background: #f4f6f8; }
+.budget-grid thead th { position: sticky; top: 0; background: #fff; z-index: 2; }
+.budget-grid thead th.sticky { z-index: 3; }
+.ratio h3 { margin: 18px 0 6px; }
+.ratio-sum { display: flex; gap: 6px; margin: 4px 0 6px; }
+.ratio-sum .pill { margin-left: 0; font-size: 12px; padding: 3px 10px; }
+.ratio-tbl td:first-child { max-width: 560px; }
+.ratio-base { max-width: 640px; }

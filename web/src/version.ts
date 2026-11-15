@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.8.0'
+export const APP_VERSION = '0.9.0'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,15 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.9.0', date: '2026-11-15', title: 'Langkah 8 — Anggaran & analisis rasio',
+    changes: [
+      { type: 'baru', text: 'Susun anggaran laba rugi per akun per bulan; salin dari realisasi tahun lalu + pertumbuhan %, atau ketik total setahun untuk dibagi rata.' },
+      { type: 'baru', text: 'Realisasi vs anggaran per bulan atau sejak awal tahun: selisih, capaian %, proyeksi akhir tahun, grafik laba bulanan, ekspor Excel.' },
+      { type: 'baru', text: 'Analisis rasio keuangan: likuiditas, solvabilitas (DER, utang bank/EBITDA, kemampuan bayar bunga), profitabilitas, dan perputaran piutang/persediaan/utang, dibanding tahun lalu dengan status sehat/perlu perhatian.' },
+      { type: 'tingkat', text: 'Dashboard mengingatkan bila beban melewati anggaran atau pendapatan masih jauh di bawah target.' },
+    ],
+  },
   {
     version: '0.8.0', date: '2026-11-15', title: 'Langkah 7 — Aset tetap, payroll & pajak',
     changes: [

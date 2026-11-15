@@ -26,7 +26,7 @@ export const NAV: NavItem[] = [
   { group: 'Akuntansi', path: '/jurnal', label: 'Jurnal & Buku Besar', icon: '≡', perm: 'jurnal.view', module: 'akuntansi' },
   { path: '/tutup-buku', label: 'Tutup Buku', icon: '◫', perm: 'jurnal.view', module: 'laporan' },
   { path: '/laporan', label: 'Laporan', icon: '▥', perm: 'laporan.view', module: 'laporan' },
-  { path: '/anggaran', label: 'Anggaran & Analisis', icon: '◔', perm: 'anggaran.view', module: 'anggaran', step: 'setelah MVP' },
+  { path: '/anggaran', label: 'Anggaran & Analisis', icon: '◔', perm: 'anggaran.view', module: 'anggaran' },
   { group: 'SDM & Pajak', path: '/payroll', label: 'Payroll', icon: '☺', perm: 'payroll.view', module: 'payroll' },
   { path: '/pajak', label: 'Pajak', icon: '%', perm: 'pajak.view', module: 'pajak' },
   { group: 'Sistem', path: '/pengguna', label: 'Pengguna & Akses', icon: '⚿', perm: 'user.manage' },

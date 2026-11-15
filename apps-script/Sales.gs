@@ -683,6 +683,14 @@ function actionDashboard_(p, ctx) {
     if (lastRun && lastRun.status === 'draft') warn('info', 'Penggajian ' + masaIndo_(prevYm) + ' masih draft.', '/payroll');
     else if (lastRun && lastRun.status === 'posted' && !lastRun.tgl_bayar) warn('warn', 'Gaji ' + masaIndo_(prevYm) + ' sudah diposting tapi belum dibayar (Rp ' + formatRp_(cents_(lastRun.total_neto)) + ').', '/payroll');
   }
+  if (hasPerm_(s, 'anggaran.view') && moduleActive_('anggaran')) {
+    const b = budgetYtd_(to);
+    if (b) {
+      const ba = b.beban, pa = b.pendapatan;
+      if (ba.anggaran > 0 && ba.realisasi > ba.anggaran * 1.05) warn('warn', 'Beban s/d ' + masaIndo_(b.sampai) + ' Rp ' + formatRp_(ba.realisasi) + ', melebihi anggaran Rp ' + formatRp_(ba.anggaran) + ' (' + Math.round((ba.realisasi / ba.anggaran - 1) * 100) + '%).', '/anggaran');
+      if (pa.anggaran > 0 && pa.realisasi < pa.anggaran * 0.9) warn('info', 'Pendapatan s/d ' + masaIndo_(b.sampai) + ' baru ' + Math.round(pa.realisasi / pa.anggaran * 100) + '% dari anggaran.', '/anggaran');
+    }
+  }
   if (hasPerm_(s, 'periode.lock')) {
     const lastYm = prevYm;
     if (Number(to.slice(8, 10)) > 10 && periodStatus_(lastYm) === 'buka') warn('info', 'Periode ' + lastYm + ' belum dikunci. Kunci setelah pembukuan bulan itu selesai.', '/tutup-buku');

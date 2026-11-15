@@ -6,6 +6,7 @@ import { Banner, PageHead, Spinner } from '../components/ui'
 import { downloadXlsx, type SheetSpec } from '../lib/excel'
 import { bulanID, rp, tglID, today } from '../lib/format'
 import { CalkReport, CashflowReport, EquityReport, WorksheetReport } from './ReportsCycle'
+import { RatioReport } from './Ratios'
 
 type Line = { kode: string; nama: string; amounts: number[]; computed?: boolean }
 type Income = {
@@ -52,10 +53,11 @@ export function ReportsPage() {
         <button className={tab === 'ekuitas' ? 'on' : ''} onClick={() => setSp({ tab: 'ekuitas' })}>Perubahan ekuitas</button>
         <button className={tab === 'calk' ? 'on' : ''} onClick={() => setSp({ tab: 'calk' })}>CALK</button>
         <button className={tab === 'lajur' ? 'on' : ''} onClick={() => setSp({ tab: 'lajur' })}>Neraca lajur</button>
+        <button className={tab === 'rasio' ? 'on' : ''} onClick={() => setSp({ tab: 'rasio' })}>Analisis rasio</button>
         <Link className="tab-link" to="/jurnal?tab=neraca-saldo">Neraca saldo ↗</Link>
       </div>
       {tab === 'laba-rugi' ? <IncomeReport /> : tab === 'posisi' ? <BalanceReport /> : tab === 'arus-kas' ? <CashflowReport />
-        : tab === 'ekuitas' ? <EquityReport /> : tab === 'calk' ? <CalkReport /> : <WorksheetReport />}
+        : tab === 'ekuitas' ? <EquityReport /> : tab === 'calk' ? <CalkReport /> : tab === 'rasio' ? <RatioReport /> : <WorksheetReport />}
     </>
   )
 }
