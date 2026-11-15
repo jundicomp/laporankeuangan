@@ -184,7 +184,7 @@ function actionUserCreate_(p, ctx) {
     }
     const salt = Utilities.getUuid();
     const u = {
-      id: newId_('USR'), username: username, nama: nama, email: String(p.email || '').trim(),
+      id: newId_('USR'), username: username, nama: nama, email: plain_(p.email),
       hash_password: hashPassword_(p.password, salt), salt: salt, role_id: p.role_id,
       cabang_akses: p.cabang_akses || '*', gagal_login: 0, terkunci_sampai: '', aktif: true,
     };
@@ -201,7 +201,7 @@ function actionUserUpdate_(p, ctx) {
     if (!u) throw new ApiError_('NOT_FOUND', 'Pengguna tidak ditemukan.');
     const patch = {};
     if (p.nama !== undefined) patch.nama = String(p.nama).trim();
-    if (p.email !== undefined) patch.email = String(p.email).trim();
+    if (p.email !== undefined) patch.email = plain_(p.email);
     if (p.role_id !== undefined) {
       if (!roleOf_(p.role_id)) throw new ApiError_('VALIDATION', 'Peran tidak dikenal.');
       patch.role_id = p.role_id;

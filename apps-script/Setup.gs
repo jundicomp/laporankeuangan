@@ -298,6 +298,7 @@ function upgradeSchema() {
     }
   });
   fixLegacyText_(ss, log);
+  cleanUserEmails_(ss, log);
   try {
     if (ensureBackupTrigger_()) log.push('+ backup otomatis harian pukul 02.00 (folder Drive "' + BACKUP_FOLDER_NAME + '")');
   } catch (e) {
@@ -378,4 +379,18 @@ function fixLegacyText_(ss, log) {
     }
   }
   if (pf) log.push('~ ' + pf + ' periode dikembalikan ke teks');
+}
+
+/** Email pengguna yang terlanjur tersimpan dengan apostrof di depan ('nama@gmail.com) dibersihkan. */
+function cleanUserEmails_(ss, log) {
+  const sh = ss.getSheetByName('SYS_User');
+  if (!sh || sh.getLastRow() < 2) return;
+  const head = sh.getRange(1, 1, 1, sh.getLastColumn()).getValues()[0];
+  const col = head.indexOf('email');
+  if (col < 0) return;
+  const rng = sh.getRange(2, col + 1, sh.getLastRow() - 1, 1);
+  const vals = rng.getValues();
+  var n = 0;
+  vals.forEach(function (r) { const v = String(r[0] || ''); if (/^'/.test(v)) { r[0] = v.replace(/^'+/, '').trim(); n++; } });
+  if (n) { rng.setValues(vals); invalidate_('SYS_User'); log.push('~ ' + n + ' email pengguna dibersihkan dari apostrof'); }
 }

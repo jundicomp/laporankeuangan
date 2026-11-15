@@ -114,7 +114,7 @@ function actionSetupOwner_(p, ctx) {
     ensureRoles_();
     const salt = Utilities.getUuid();
     const u = {
-      id: newId_('USR'), username: username, nama: nama, email: String(p.email || '').trim(),
+      id: newId_('USR'), username: username, nama: nama, email: plain_(p.email),
       hash_password: hashPassword_(p.password, salt), salt: salt, role_id: 'owner', cabang_akses: '*',
       gagal_login: 0, terkunci_sampai: '', aktif: true,
     };
@@ -130,7 +130,7 @@ function actionSetupOwner_(p, ctx) {
 }
 
 function actionLogin_(p) {
-  const username = String(p.username || '').trim().toLowerCase();
+  const username = plain_(p.username).toLowerCase();
   const u = readTable_('SYS_User').filter(function (x) { return x.username === username; })[0];
   if (!u || !bool_(u.aktif)) {
     logLogin_(username, 'gagal', u ? 'akun nonaktif' : 'username tidak dikenal');
@@ -201,6 +201,11 @@ const APP_URL_DEFAULT = 'https://jundicomp.github.io/laporankeuangan/';
 const RESET_MINUTES = 30;
 const RESET_MAX_PER_HOUR = 3;
 
+/** Teks bersih: buang apostrof di depan (penanda teks Google Sheets yang kadang ikut tersalin) dan spasi. */
+function plain_(v) {
+  return String(v === undefined || v === null ? '' : v).replace(/^'+/, '').trim();
+}
+
 function sha256Hex_(s) {
   return Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, s, Utilities.Charset.UTF_8)
     .map(function (b) { return ('0' + (b & 255).toString(16)).slice(-2); }).join('');
@@ -214,11 +219,11 @@ function maskEmail_(e) {
 
 /** Alamat tujuan link reset: email pengguna; untuk owner tanpa email → email perusahaan → akun Google pemilik Apps Script. */
 function resetDestination_(u) {
-  const ok = function (e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(String(e || '').trim()); };
-  if (ok(u.email)) return String(u.email).trim();
+  const ok = function (e) { return /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(plain_(e)); };
+  if (ok(u.email)) return plain_(u.email);
   if (u.role_id !== 'owner') return '';
   const comp = readTable_('M_Perusahaan')[0] || {};
-  if (ok(comp.email)) return String(comp.email).trim();
+  if (ok(comp.email)) return plain_(comp.email);
   try {
     const g = Session.getEffectiveUser().getEmail();
     if (ok(g)) return g;
@@ -231,11 +236,11 @@ function resetDestination_(u) {
  * supaya orang lain tidak bisa menebak username/email yang terdaftar.
  */
 function actionResetRequest_(p) {
-  const login = String(p.login || '').trim().toLowerCase();
+  const login = plain_(p.login).toLowerCase();
   const generic = { sent: true, pesan: 'Bila akun itu terdaftar dan punya email, link untuk membuat password baru sudah dikirim. Periksa kotak masuk (dan folder spam). Link berlaku ' + RESET_MINUTES + ' menit.' };
   if (!login) throw new ApiError_('VALIDATION', 'Isi username atau email.');
   const u = readTable_('SYS_User').filter(function (x) {
-    return bool_(x.aktif) && (x.username === login || String(x.email || '').trim().toLowerCase() === login);
+    return bool_(x.aktif) && (plain_(x.username).toLowerCase() === login || plain_(x.email).toLowerCase() === login);
   })[0];
   if (!u) { logLogin_(login, 'reset', 'tidak dikenal'); return generic; }
   const to = resetDestination_(u);
@@ -299,7 +304,7 @@ function actionResetConfirm_(p) {
 
 /** Ganti email pemulihan sendiri (wajib password saat ini). */
 function actionChangeEmail_(p, ctx) {
-  const email = String(p.email || '').trim();
+  const email = plain_(p.email);
   if (email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) throw new ApiError_('VALIDATION', 'Format email tidak valid.');
   return withLock_(function () {
     const u = readTable_('SYS_User').filter(function (x) { return x.id === ctx.session.user_id; })[0];

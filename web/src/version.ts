@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.6.1'
+export const APP_VERSION = '0.6.2'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,14 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.6.2', date: '2026-11-15', title: 'Perbaikan lupa password',
+    changes: [
+      { type: 'perbaikan', text: 'Email/username yang tersalin bersama apostrof (\') dari Google Sheets tetap dikenali saat lupa password dan login.' },
+      { type: 'perbaikan', text: 'upgradeSchema membersihkan apostrof di depan email pengguna yang terlanjur tersimpan.' },
+      { type: 'tingkat', text: 'Bila server Apps Script belum diperbarui, pesan error menjelaskan langkah deploy versi baru.' },
+    ],
+  },
   {
     version: '0.6.1', date: '2026-11-12', title: 'Lupa password lewat email',
     changes: [

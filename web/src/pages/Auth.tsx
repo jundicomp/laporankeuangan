@@ -139,7 +139,7 @@ function ForgotForm({ initial, onBack }: { initial: string; onBack: () => void }
     setErr('')
     setBusy(true)
     try {
-      const r = await call<{ pesan: string }>('auth.resetRequest', { login })
+      const r = await call<{ pesan: string }>('auth.resetRequest', { login: login.replace(/^'+/, '').trim() })
       setMsg(r.pesan)
     } catch (e2) {
       setErr(errorText(e2))

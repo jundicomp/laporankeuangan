@@ -110,5 +110,9 @@ export async function batch(calls: { action: string; payload?: Record<string, un
 }
 
 export function errorText(e: unknown) {
+  if (e instanceof ApiError && e.code === 'UNKNOWN_ACTION') {
+    return 'Server Apps Script belum versi terbaru (' + e.message.replace(/^Aksi tidak dikenal:\s*/, '') + ' belum ada). ' +
+      'Owner perlu menempel file Apps Script terbaru lalu Terapkan → Kelola deployment → Edit → Versi baru.'
+  }
   return e instanceof ApiError ? e.message : 'Terjadi kesalahan tak terduga.'
 }
