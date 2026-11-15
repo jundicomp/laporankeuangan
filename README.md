@@ -3,7 +3,7 @@
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
 - Web: https://jundicomp.github.io/laporankeuangan/
-- Status: **Langkah 5 selesai** — pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
+- Status: **Langkah 7 selesai** — aset tetap & penyusutan, payroll (BPJS, PPh 21 TER & tahunan, slip gaji), pajak per masa + setor & kalender. Langkah 6: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank. Langkah 5: pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
 
 ```
 laporankeuangan/
@@ -22,6 +22,12 @@ laporankeuangan/
 │  ├─ Sales.gs                    invoice, pelunasan, umur piutang, penagihan, dashboard
 │  ├─ Purchase.gs                 tagihan pembelian, pembayaran utang, umur utang
 │  ├─ Stock.gs                    persediaan rata-rata: mutasi, kartu stok, pemakaian, opname, stok awal
+│  ├─ Closing.gs                  neraca lajur, jurnal penutup, arus kas, perubahan ekuitas
+│  ├─ Recon.gs                    rekonsiliasi bank
+│  ├─ Calk.gs                     catatan atas laporan keuangan
+│  ├─ Asset.gs                    aset tetap, penyusutan bulanan, pelepasan
+│  ├─ Payroll.gs                  karyawan, penggajian, BPJS, PPh 21
+│  ├─ Tax.gs                      rekap pajak per masa, setor, kalender
 │  └─ Backup.gs                   backup harian ke Drive, impor saldo awal
 └─ web/src/
    ├─ api/client.ts               panggilan API + token + batch
@@ -32,6 +38,15 @@ laporankeuangan/
 ```
 
 ---
+
+## Update ke Langkah 7 (dari Langkah 5 — sekaligus Langkah 6)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Ledger`, `Report`, `Sales`.
+2. Tambah 6 file baru (**+ → Skrip**): `Closing`, `Recon`, `Calk`, `Asset`, `Payroll`, `Tax`. (Kalau Langkah 6 sudah terpasang, cukup ganti `Calk` dan tambah 3 yang terakhir.)
+3. Simpan, jalankan **upgradeSchema** → log harus `0.8.0` (menambah tab `T_Rekon`, `T_CALK`, `T_Susut`, `T_GajiRun`, `T_SetorPajak`, dan kolom baru di `T_Aset`, `M_Karyawan`, `T_Payroll`, `T_JurnalDetail`).
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+6. Di aplikasi: **Pengaturan → Aktivasi modul** → nyalakan *Aset tetap & penyusutan*, *Payroll & slip gaji*, *Pajak* (dan *Rekonsiliasi bank* bila perlu).
 
 ## Update ke Langkah 6 (dari Langkah 5)
 
@@ -205,6 +220,16 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - **CALK**: angka per catatan diambil otomatis (tahun ini vs tahun lalu); teks tiap catatan bisa diubah per tahun buku dan dikembalikan ke teks bawaan.
 - **Rekonsiliasi bank**: baris jurnal ke akun rekening yang muncul di koran dicentang. Saldo hitung = saldo buku − setoran dalam perjalanan + pengeluaran beredar; final hanya bila sama dengan saldo koran. Transaksi Kas & Bank yang sudah cocok tidak bisa dibatalkan sampai rekonsiliasinya dibuka kembali.
 
+## Aturan aset tetap, payroll & pajak
+
+- **Aset tetap**: harga perolehan dicatat Dr akun aset; cara bayar kas/bank (jurnal KK + baris Kas & Bank), utang/akun lain (JU), atau *sudah tercatat* untuk aset dari saldo awal (tanpa jurnal, isi akumulasi awal & bulan terakhirnya). Penyusutan dimulai bulan perolehan; garis lurus atau saldo menurun ganda (sisa nilai buku disusutkan sekaligus di bulan terakhir). Tanah tidak disusutkan.
+- **Proses penyusutan** = satu jurnal penyesuaian (JP) per bulan, ref `SUSUT-YYYY-MM`; bulan yang terlewat digabung sebagai susulan. Hanya proses terakhir yang bisa dibatalkan. Aset yang sudah disusutkan tidak bisa dibatalkan pencatatannya — jual/hapus saja.
+- **Pelepasan**: penyusutan s/d bulan sebelum tanggal pelepasan ikut dicatat; selisih harga jual dengan nilai buku ke 7-1103 / 7-2103. Daftar aset dicocokkan dengan saldo akun 1-2xxx di buku besar.
+- **Payroll**: jurnal GJ — Dr 6-1101 gaji & tunjangan, 6-1102 lembur, 6-1103 bonus & THR, 6-1104 BPJS perusahaan; Cr 2-1303 utang BPJS (perusahaan + karyawan), 2-1202 utang PPh 21, 1-1302 kasbon, 2-1302 utang gaji. Pembayaran gaji (KK) mengurangi utang gaji.
+- **BPJS**: Kesehatan 4% + 1% (batas upah di pengaturan, bawaan Rp12 jt), JHT 3,7% + 2%, JP 2% + 1% (batas upah di pengaturan), JKK sesuai tingkat risiko (bawaan 0,24%), JKM 0,3%. Dasar = gaji pokok + tunjangan tetap.
+- **PPh 21** (PP 58/2023, PMK 168/2023): Jan–Nov TER bulanan kategori A/B/C × bruto (termasuk premi JKK, JKM, BPJS Kesehatan perusahaan). Desember atau bulan karyawan keluar: Pasal 17 atas neto setahun (bruto − biaya jabatan 5% maks Rp500 rb/bulan − iuran JHT & JP karyawan − PTKP) dikurangi yang sudah dipotong; bisa minus (dikembalikan). Penggajian yang sudah diposting tidak bisa dibatalkan bila bulan sesudahnya sudah diposting.
+- **Pajak per masa** diambil dari mutasi akun 2-1201/1-1601 (PPN), 2-1202 (PPh 21), 2-1203 (PPh 23), 2-1204 (PPh 4(2)); PPh final UMKM 0,5% dari omzet pendapatan (opsional); PPh 25 dari pengaturan. Setor PPN = Dr PPN keluaran, Cr PPN masukan, Cr kas (kurang bayar); lebih bayar tetap di PPN masukan. Jatuh tempo: setor tgl 15, lapor PPh tgl 20, lapor PPN akhir bulan berikutnya (PMK 81/2024), Sabtu/Minggu digeser ke Senin.
+
 ## Berikutnya
 
-Aset tetap & penyusutan, payroll, pajak → anggaran, paket laporan bankable, multi perusahaan.
+Anggaran & analisis rasio → paket laporan bankable, multi perusahaan.

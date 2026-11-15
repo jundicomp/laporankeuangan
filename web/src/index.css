@@ -561,3 +561,30 @@ input.num { text-align: right; font-variant-numeric: tabular-nums; }
 .recon-sum td.r { white-space: nowrap; }
 .calk-tbl td:first-child, .calk-tbl th:first-child { width: 56%; }
 .calk-tbl td.r, .calk-tbl th.r { width: 22%; }
+
+/* ---------------------------------------------------------------- Langkah 7 */
+.segbtn { display: inline-flex; flex-wrap: wrap; gap: 0; border: 1px solid var(--line, #d5dbe1); border-radius: 8px; overflow: hidden; align-self: flex-start; }
+.segbtn button { border: 0; background: #fff; padding: 7px 14px; font: inherit; font-size: 13px; cursor: pointer; color: #2b333d; border-right: 1px solid var(--line, #d5dbe1); }
+.segbtn button:last-child { border-right: 0; }
+.segbtn button:hover { background: var(--brandsoft); }
+.segbtn button.on { background: var(--brand); color: #fff; font-weight: 600; }
+.sched { max-height: 300px; overflow-y: auto; flex: none; }
+.pay-tbl td.num input { width: 84px; text-align: right; padding: 6px 6px; font-size: 13px; }
+.pay-tbl th { font-size: 10.5px; }
+.pay-tbl th, .pay-tbl td { padding-left: 5px; padding-right: 5px; }
+.pay-tbl td.c { text-align: center; }
+.tax-tbl td.click:hover { background: var(--brandsoft); }
+.tax-tbl td .pill { margin: 2px 0 0; }
+.calk-mut { font-size: 12px; }
+.calk-mut th { white-space: nowrap; }
+.calk-mut td:first-child { min-width: 170px; }
+.slip { padding: 6px 2px; }
+.slip-kv { width: 100%; margin: 14px 0; border-collapse: collapse; font-size: 12.5px; }
+.slip-kv td { padding: 3px 6px 3px 0; } .slip-kv td:nth-child(odd) { color: #4a5563; width: 16%; }
+.slip-tbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.slip-tbl th { text-align: left; border-bottom: 2px solid #111; padding: 4px 0; }
+.slip-tbl td { padding: 3px 0; border-bottom: 1px solid #e3e7eb; }
+.slip-tbl tr.sum td { font-weight: 700; border-top: 1px solid #111; border-bottom: 0; }
+.slip-net { margin: 14px 0 8px; padding: 10px 12px; background: #f1f6f4; border: 1px solid #cfe3da; border-radius: 6px; font-size: 14px; display: flex; justify-content: space-between; }
+.slip-net b { font-size: 17px; }
+@media print { .slip-net { background: #fff; } }

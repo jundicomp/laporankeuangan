@@ -671,6 +671,18 @@ function actionDashboard_(p, ctx) {
     const n = journalHeads_().filter(function (h) { return h.status === 'menunggu'; }).length;
     if (n) warn('info', n + ' jurnal menunggu persetujuan.', '/jurnal?status=menunggu');
   }
+  if (hasPerm_(s, 'pajak.view') && moduleActive_('pajak')) {
+    taxWarnings_(to).forEach(function (w) { warn(w.level, w.text, '/pajak'); });
+  }
+  if (hasPerm_(s, 'aset.view') && moduleActive_('aset')) {
+    const plan = runPlan_('');
+    if (plan.lines.length && plan.periode < to.slice(0, 7) && !plan.blockers.length) warn('info', 'Penyusutan aset ' + masaIndo_(plan.periode) + ' belum diproses (Rp ' + formatRp_(plan.total) + ').', '/aset?tab=penyusutan');
+  }
+  if (hasPerm_(s, 'payroll.view') && moduleActive_('payroll')) {
+    const lastRun = runRows_().filter(function (r) { return r.periode === prevYm && r.status !== 'batal'; })[0];
+    if (lastRun && lastRun.status === 'draft') warn('info', 'Penggajian ' + masaIndo_(prevYm) + ' masih draft.', '/payroll');
+    else if (lastRun && lastRun.status === 'posted' && !lastRun.tgl_bayar) warn('warn', 'Gaji ' + masaIndo_(prevYm) + ' sudah diposting tapi belum dibayar (Rp ' + formatRp_(cents_(lastRun.total_neto)) + ').', '/payroll');
+  }
   if (hasPerm_(s, 'periode.lock')) {
     const lastYm = prevYm;
     if (Number(to.slice(8, 10)) > 10 && periodStatus_(lastYm) === 'buka') warn('info', 'Periode ' + lastYm + ' belum dikunci. Kunci setelah pembukuan bulan itu selesai.', '/tutup-buku');

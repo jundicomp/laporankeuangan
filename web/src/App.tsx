@@ -14,6 +14,9 @@ import { SalesPage } from './pages/Sales'
 import { ReconcilePage } from './pages/Reconcile'
 import { PurchasesPage } from './pages/Purchases'
 import { InventoryPage } from './pages/Inventory'
+import { AssetsPage } from './pages/Assets'
+import { PayrollPage } from './pages/Payroll'
+import { TaxPage } from './pages/Tax'
 import { JournalPage } from './pages/Journal'
 import { JournalFormPage } from './pages/JournalForm'
 import { PeriodsPage } from './pages/Periods'
@@ -40,6 +43,9 @@ const BUILT: Record<string, () => ReactElement> = {
   '/utang': () => <PayablesPage />,
   '/persediaan': () => <InventoryPage />,
   '/rekonsiliasi': () => <ReconcilePage />,
+  '/aset': () => <AssetsPage />,
+  '/payroll': () => <PayrollPage />,
+  '/pajak': () => <TaxPage />,
 }
 
 const JOURNAL_FORM: NavItem = { path: '/jurnal/baru', label: 'Jurnal baru', icon: '≡', perm: 'jurnal.edit', module: 'akuntansi' }

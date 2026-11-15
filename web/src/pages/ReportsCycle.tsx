@@ -16,7 +16,8 @@ type Cashflow = {
   kenaikan: number; kas_awal: number; kas_akhir: number; selisih: number; kas: { kode: string; nama: string; awal: number; akhir: number }[]
 }
 type Equity = { from: string; to: string; columns: { kode: string; nama: string }[]; rows: { key: string; label: string; amounts: number[]; total: number }[]; seimbang: boolean }
-type CalkNote = { no: number; kode: string; judul: string; teks: string; tabel: { rows: { kode: string; nama: string; kini: number; lalu: number }[]; kini: number; lalu: number } | null; diubah: { oleh: string; pada: string } | null }
+type Mutasi = { kategori: string; awal: number; tambah: number; kurang: number; akhir: number; akum_awal: number; susut: number; akum_kurang: number; akum_akhir: number; nilai_buku: number }
+type CalkNote = { no: number; kode: string; judul: string; teks: string; mutasi?: Mutasi[] | null; tabel: { rows: { kode: string; nama: string; kini: number; lalu: number }[]; kini: number; lalu: number } | null; diubah: { oleh: string; pada: string } | null }
 type Calk = { from: string; to: string; lalu: { from: string; to: string }; perusahaan: { nama: string; alamat: string; npwp: string }; kerangka: string; catatan: CalkNote[] }
 
 // ---------------------------------------------------------------- periode bersama
@@ -264,6 +265,22 @@ export function CalkReport() {
                     <tr className="key"><td>Jumlah</td><Num v={c.tabel.kini} strong /><Num v={c.tabel.lalu} strong /></tr>
                   </tbody>
                 </table>
+              )}
+              {c.mutasi && c.mutasi.length > 1 && (
+                <>
+                  <p className="small"><b>Mutasi aset tetap tahun {d.to.slice(0, 4)}</b></p>
+                  <div className="scroll-x">
+                    <table className="tbl rep calk-mut">
+                      <thead><tr><th>Kategori</th><th className="r">Saldo awal</th><th className="r">Penambahan</th><th className="r">Pelepasan</th><th className="r">Saldo akhir</th>
+                        <th className="r">Akum. awal</th><th className="r">Penyusutan</th><th className="r">Akum. dilepas</th><th className="r">Akum. akhir</th><th className="r">Nilai buku</th></tr></thead>
+                      <tbody>{c.mutasi.map((m, i) => (
+                        <tr key={m.kategori} className={i === c.mutasi!.length - 1 ? 'key' : ''}><td>{m.kategori}</td>
+                          <Num v={m.awal} /><Num v={m.tambah} /><Num v={m.kurang} /><Num v={m.akhir} strong={i === c.mutasi!.length - 1} />
+                          <Num v={m.akum_awal} /><Num v={m.susut} /><Num v={m.akum_kurang} /><Num v={m.akum_akhir} /><Num v={m.nilai_buku} strong /></tr>
+                      ))}</tbody>
+                    </table>
+                  </div>
+                </>
               )}
               {c.diubah && <p className="small muted no-print">Teks diubah {c.diubah.oleh}</p>}
             </section>

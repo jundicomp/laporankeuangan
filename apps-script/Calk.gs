@@ -67,7 +67,7 @@ function actionCalkGet_(p) {
     { kode: 'aset_lancar_lain', judul: 'Aset lancar lainnya', tabel: tableOf(function (a) {
       return a.tipe === 'aset' && under(a, '1-1') && !isCash(a) && a.kode.indexOf('1-13') !== 0 && a.kode.indexOf('1-14') !== 0 && !/piutang/i.test(a.nama); }, false, false) },
     { kode: 'aset_tetap', judul: 'Aset tetap', tabel: tableOf(function (a) { return a.tipe === 'aset' && under(a, '1-2'); }, false, false),
-      teks: 'Akumulasi penyusutan disajikan sebagai pengurang (angka negatif) dari biaya perolehan aset tetap.' },
+      teks: 'Akumulasi penyusutan disajikan sebagai pengurang (angka negatif) dari biaya perolehan aset tetap.', mutasi: moduleActive_('aset') ? assetMovement_(fs, fe) : null },
     { kode: 'utang_usaha', judul: 'Utang usaha', tabel: tableOf(function (a) { return a.tipe === 'liabilitas' && a.kode.indexOf('2-11') === 0; }, false, false) },
     { kode: 'utang_pajak', judul: 'Utang pajak', tabel: tableOf(function (a) { return a.tipe === 'liabilitas' && a.kode.indexOf('2-12') === 0; }, false, false) },
     { kode: 'liabilitas_lain', judul: 'Liabilitas lainnya', tabel: tableOf(function (a) {
@@ -84,7 +84,7 @@ function actionCalkGet_(p) {
   const out = sections.filter(function (s) { return !s.tabel || s.tabel.rows.length || texts[s.kode]; }).map(function (s) {
     no++;
     const saved = texts[s.kode];
-    return { no: no, kode: s.kode, judul: s.judul, tabel: s.tabel || null, teks: saved ? String(saved.isi) : (s.teks || ''), diubah: saved ? { oleh: saved.diubah_oleh, pada: saved.diubah_pada } : null };
+    return { no: no, kode: s.kode, judul: s.judul, tabel: s.tabel || null, mutasi: s.mutasi || null, teks: saved ? String(saved.isi) : (s.teks || ''), diubah: saved ? { oleh: saved.diubah_oleh, pada: saved.diubah_pada } : null };
   });
   return { from: fs, to: fe, lalu: { from: pfs, to: pfe }, perusahaan: { nama: comp.nama, alamat: comp.alamat, npwp: comp.npwp }, kerangka: getSetting_('kerangka_sak') || 'SAK EP', catatan: out };
 }

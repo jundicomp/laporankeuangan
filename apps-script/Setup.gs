@@ -6,7 +6,7 @@
  *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.7.0';
+const SCHEMA_VERSION = '0.8.0';
 
 const SCHEMA = {
   // ---- master
@@ -16,7 +16,8 @@ const SCHEMA = {
   M_Supplier: ['id', 'kode', 'nama', 'npwp', 'telepon', 'email', 'alamat', 'top_hari', 'akun_utang', 'aktif'],
   M_Produk: ['id', 'sku', 'barcode', 'nama', 'tipe', 'satuan', 'harga_beli', 'harga_jual', 'stok_min', 'stok_max', 'akun_penjualan', 'akun_persediaan', 'akun_hpp', 'aktif', 'lacak_stok'],
   M_Gudang: ['id', 'kode', 'nama', 'cabang_id', 'aktif'],
-  M_Karyawan: ['id', 'nik', 'nama', 'jabatan', 'divisi', 'gaji_pokok', 'ptkp', 'rekening', 'aktif'],
+  M_Karyawan: ['id', 'nik', 'nama', 'jabatan', 'divisi', 'gaji_pokok', 'ptkp', 'rekening', 'aktif',
+    'kode', 'npwp', 'tunjangan', 'bank', 'email', 'bpjs_kes', 'bpjs_tk', 'tgl_masuk', 'tgl_keluar'],
   M_Akun: ['kode', 'nama', 'tipe', 'saldo_normal', 'parent', 'is_header', 'aktif'],
   M_Pajak: ['id', 'kode', 'nama', 'tarif', 'berlaku_dari', 'berlaku_sampai', 'akun_id'],
   M_KasBank: ['id', 'nama', 'jenis', 'no_rek', 'akun_id', 'aktif'],
@@ -32,9 +33,18 @@ const SCHEMA = {
   T_StokMutasi: ['id', 'tgl', 'produk_id', 'gudang_id', 'qty', 'harga', 'batch', 'serial', 'exp', 'sumber_dok',
     'jenis', 'nilai', 'ref_no', 'keterangan', 'status', 'jurnal_id', 'dibuat_oleh', 'dibuat_pada'],
   T_FifoLayer: ['produk_id', 'gudang_id', 'tgl', 'qty_sisa', 'harga'],
-  T_Aset: ['id', 'nama', 'kategori', 'cabang_id', 'tgl_beli', 'harga', 'umur_bln', 'residu', 'akun_aset', 'akun_akum', 'akun_beban', 'status'],
+  T_Aset: ['id', 'nama', 'kategori', 'cabang_id', 'tgl_beli', 'harga', 'umur_bln', 'residu', 'akun_aset', 'akun_akum', 'akun_beban', 'status',
+    'kode', 'metode', 'mulai_susut', 'akum_awal', 'akum_awal_per', 'sumber', 'akun_lawan', 'kasbank_id', 'kasbank_trx', 'jurnal_id', 'lokasi', 'catatan',
+    'tgl_lepas', 'cara_lepas', 'harga_lepas', 'jurnal_lepas', 'kas_lepas', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada'],
+  T_Susut: ['id', 'periode', 'aset_id', 'dari', 'sampai', 'jumlah', 'jurnal_id', 'status', 'sumber', 'dibuat_oleh', 'dibuat_pada'],
   T_Anggaran: ['periode', 'cabang_id', 'divisi', 'akun_id', 'jumlah'],
-  T_Payroll: ['periode', 'karyawan_id', 'komponen_json', 'bruto', 'pph21', 'neto', 'status', 'jurnal_id'],
+  T_Payroll: ['periode', 'karyawan_id', 'komponen_json', 'bruto', 'pph21', 'neto', 'status', 'jurnal_id',
+    'run_id', 'kode', 'nama', 'jabatan', 'ptkp', 'gaji_pokok', 'tunjangan', 'lembur', 'bonus', 'thr', 'potongan_absen', 'kasbon',
+    'bpjs_kes_p', 'bpjs_kes_k', 'jht_p', 'jht_k', 'jp_p', 'jp_k', 'jkk', 'jkm', 'ter_kategori', 'ter_tarif', 'metode', 'akhir',
+    'th_bruto', 'th_biaya_jabatan', 'th_iuran', 'th_neto', 'th_ptkp', 'th_pkp', 'th_pph', 'th_dipotong', 'catatan'],
+  T_GajiRun: ['id', 'no', 'periode', 'tgl', 'status', 'karyawan', 'total_bruto', 'total_pph21', 'total_neto', 'total_bpjs', 'total_beban', 'jurnal_id',
+    'tgl_bayar', 'kasbank_id', 'kasbank_trx', 'jurnal_bayar', 'catatan', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada', 'diposting_oleh', 'diposting_pada'],
+  T_SetorPajak: ['id', 'jenis', 'masa', 'tgl', 'jumlah', 'kompensasi', 'ntpn', 'kasbank_id', 'jurnal_id', 'kasbank_trx', 'status', 'keterangan', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada'],
   T_Penagihan: ['dok_id', 'tgl', 'via', 'catatan', 'oleh'],
   // ---- akuntansi
   T_Jurnal: ['id', 'no', 'tgl', 'jenis', 'ref_dok', 'cabang_id', 'keterangan', 'status', 'balik_otomatis', 'dibuat_oleh', 'dibuat_pada', 'diposting_oleh', 'diposting_pada',
@@ -319,7 +329,8 @@ function upgradeSchema() {
   if (!found) settings.appendRow(['schema_version', SCHEMA_VERSION]);
   const keys = sv.map(function (r) { return r[0]; });
   if (keys.indexOf('format_nomor_jurnal') < 0) settings.appendRow(['format_nomor_jurnal', '{JENIS}/{YYYY}/{MM}/{####}']);
-  const defaults = { format_nomor_invoice: 'INV/{YYYY}/{MM}/{####}', ppn_tarif: '11', top_default: '14', format_nomor_pembelian: 'BL/{YYYY}/{MM}/{####}', stok_minus_boleh: 'tidak', app_url: APP_URL_DEFAULT };
+  const defaults = { format_nomor_invoice: 'INV/{YYYY}/{MM}/{####}', ppn_tarif: '11', top_default: '14', format_nomor_pembelian: 'BL/{YYYY}/{MM}/{####}', stok_minus_boleh: 'tidak', app_url: APP_URL_DEFAULT,
+    bpjs_kes_batas: '12000000', bpjs_jp_batas: '10547400', bpjs_jkk_tarif: '0.24', pajak_pkp: 'ya', pajak_final_umkm: 'tidak', pajak_pph25: '0', pajak_bentuk: 'badan' };
   Object.keys(defaults).forEach(function (k) { if (keys.indexOf(k) < 0) settings.appendRow([k, defaults[k]]); });
   for (var s2 = 1; s2 < sv.length; s2++) {
     // nomor invoice versi awal memakai kode cabang; perusahaan tunggal cukup tahun/bulan

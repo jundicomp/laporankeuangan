@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.7.0'
+export const APP_VERSION = '0.8.0'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,17 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.8.0', date: '2026-11-15', title: 'Langkah 7 — Aset tetap, payroll & pajak',
+    changes: [
+      { type: 'baru', text: 'Aset tetap: daftar aset per kategori, beli dari kas/bank atau utang, aset lama dari saldo awal, jadwal penyusutan garis lurus & saldo menurun.' },
+      { type: 'baru', text: 'Proses penyusutan bulanan sekali klik (jurnal penyesuaian), jual/hapus aset dengan laba/rugi otomatis, cocokkan daftar aset dengan buku besar.' },
+      { type: 'baru', text: 'Payroll: data karyawan, penggajian bulanan dengan lembur/bonus/THR/kasbon, BPJS Kesehatan & Ketenagakerjaan, slip gaji cetak/PDF, pembayaran gaji.' },
+      { type: 'baru', text: 'PPh 21 otomatis: tarif efektif (TER) Januari–November, hitung ulang setahun Pasal 17 di Desember atau saat karyawan keluar; rekap tahunan untuk 1721-A1.' },
+      { type: 'baru', text: 'Pajak: rekap PPN, PPh 21/23/4(2), PPh 25 dan PPh final UMKM per masa, catat setoran + NTPN, kompensasi PPN masukan, kalender jatuh tempo.' },
+      { type: 'tingkat', text: 'CALK menampilkan tabel mutasi aset tetap; dashboard mengingatkan pajak jatuh tempo, penyusutan & gaji yang belum diproses.' },
+    ],
+  },
   {
     version: '0.7.0', date: '2026-11-15', title: 'Langkah 6 — Siklus akuntansi PSAK lengkap',
     changes: [
