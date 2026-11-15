@@ -138,6 +138,7 @@ const ROUTES = {
 
 function doPost(e) {
   const started = Date.now();
+  autoUpgrade_();
   try {
     const req = JSON.parse((e && e.postData && e.postData.contents) || '{}');
     const ctx = { token: req.token || '', session: null };
@@ -190,7 +191,28 @@ function doGet() {
 // ---------------------------------------------------------------- sistem & diagnostik
 
 function actionPing_() {
-  return { pong: true, serverTime: new Date().toISOString() };
+  var db = '';
+  try { db = getSetting_('schema_version') || ''; } catch (e) { db = 'belum setup'; }
+  return { pong: true, serverTime: new Date().toISOString(), kode: SCHEMA_VERSION, database: db };
+}
+
+/**
+ * Setelah kode baru dideploy, request pertama otomatis menjalankan upgradeSchema()
+ * bila versi skema di database masih lama — tidak perlu menjalankannya manual dari editor.
+ */
+function autoUpgrade_() {
+  try {
+    if (!PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')) return;
+    if (getSetting_('schema_version') === SCHEMA_VERSION) return;
+    withLock_(function () {
+      MEMO_ = {};
+      invalidate_('SYS_Setting');
+      if (getSetting_('schema_version') !== SCHEMA_VERSION) upgradeSchema();
+    });
+    MEMO_ = {};
+  } catch (err) {
+    console.error('autoUpgrade gagal: ' + (err && err.message));
+  }
 }
 
 function actionInfo_() {

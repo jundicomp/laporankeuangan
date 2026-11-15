@@ -5,3 +5,4 @@ dist/
 apps-script/.clasp.json
 .clasprc.json
 *.tsbuildinfo
+apps-script/.deploy-url

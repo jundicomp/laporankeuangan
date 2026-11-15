@@ -41,6 +41,22 @@ laporankeuangan/
 
 ---
 
+## Deploy sekali klik (disarankan)
+
+Klik dua kali **`deploy.bat`** di folder proyek. File ini:
+1. mengunggah **semua** file `apps-script/*.gs` + `appsscript.json` ke project Neraca API (memakai `clasp`, alat resmi Google — isi project online diganti seluruhnya dengan isi folder ini),
+2. membuat **versi baru** pada deployment Web App yang sama (URL tidak berubah),
+3. memanggil API sekali — server menjalankan `upgradeSchema` sendiri bila versi skema berubah (lihat `"kode"` dan `"database"` di hasilnya),
+4. menawarkan kirim kode web ke GitHub (`kirim-ke-github.bat`).
+
+Persiapan pertama kali (diminta otomatis oleh `deploy.bat`):
+- pasang **Node.js LTS** dari nodejs.org,
+- nyalakan **Google Apps Script API** di https://script.google.com/home/usersettings,
+- login Google (akun pemilik project) saat browser terbuka,
+- tempel **ID skrip** (Neraca API → ⚙ Setelan project) dan **URL aplikasi web** (Terapkan → Kelola deployment, berakhiran `/exec`). Keduanya disimpan di `apps-script/.clasp.json` dan `apps-script/.deploy-url` (tidak ikut ke GitHub).
+
+Kalau `appsscript.json` menambah izin (scope) baru, buka editor sekali dan jalankan fungsi apa saja untuk memberi izin, lalu jalankan `deploy.bat` lagi.
+
 ## Update ke Langkah 9 (sekaligus Langkah 6–8, dari Langkah 5)
 
 1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Ledger`, `Report`, `Sales`.
