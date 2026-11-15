@@ -26,7 +26,8 @@ const ROADMAP = [
   { step: 'Langkah 6', title: 'Siklus PSAK lengkap: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank', done: true },
   { step: 'Langkah 7', title: 'Aset tetap & penyusutan, payroll (BPJS, PPh 21 TER), pajak per masa & kalender', done: true },
   { step: 'Langkah 8', title: 'Anggaran per bulan, realisasi vs anggaran & proyeksi, analisis rasio keuangan', done: true },
-  { step: 'Berikutnya', title: 'Paket laporan bankable, multi perusahaan' },
+  { step: 'Langkah 9', title: 'Paket laporan bankable: sampul, pernyataan manajemen, 5 laporan komparatif, rasio, lampiran, daftar periksa kesiapan', done: true },
+  { step: 'Berikutnya', title: 'Multi perusahaan' },
 ]
 
 function greet() {

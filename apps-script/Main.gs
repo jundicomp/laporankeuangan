@@ -123,6 +123,7 @@ const ROUTES = {
   'budget.get': { fn: actionBudgetGet_, perm: 'anggaran.view', module: 'anggaran' },
   'budget.save': { fn: actionBudgetSave_, perm: 'anggaran.edit', module: 'anggaran' },
   'ratio.get': { fn: actionRatioGet_, perm: 'laporan.view', module: 'laporan' },
+  'bankable.get': { fn: actionBankableGet_, perm: 'laporan.view', module: 'bankable' },
   // backup & impor
   'backup.list': { fn: actionBackupList_, perm: 'backup.run' },
   'backup.run': { fn: actionBackupRun_, perm: 'backup.run' },

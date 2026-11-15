@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.9.0'
+export const APP_VERSION = '0.10.0'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,15 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.10.0', date: '2026-11-15', title: 'Langkah 9 — Paket laporan bankable',
+    changes: [
+      { type: 'baru', text: 'Menu Paket Bankable: satu dokumen PDF berisi sampul, surat pernyataan manajemen, ringkasan, laporan posisi keuangan, laba rugi, perubahan ekuitas, arus kas, CALK, dan analisis rasio — komparatif dengan tahun lalu.' },
+      { type: 'baru', text: 'Lampiran yang biasa diminta analis kredit: omzet & laba 24 bulan, saldo & mutasi rekening 12 bulan, umur piutang & utang, daftar aset tetap, kepatuhan pajak.' },
+      { type: 'baru', text: 'Daftar periksa kesiapan sebelum ke bank: neraca seimbang, periode dikunci, tutup buku, rekonsiliasi bank, buku pembantu cocok dengan buku besar, pajak tidak terlambat.' },
+      { type: 'tingkat', text: 'Paket bisa diunduh sebagai Excel (satu sheet per laporan) dan bagian-bagiannya bisa dipilih.' },
+    ],
+  },
   {
     version: '0.9.0', date: '2026-11-15', title: 'Langkah 8 — Anggaran & analisis rasio',
     changes: [

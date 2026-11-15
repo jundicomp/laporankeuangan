@@ -18,6 +18,7 @@ import { AssetsPage } from './pages/Assets'
 import { PayrollPage } from './pages/Payroll'
 import { TaxPage } from './pages/Tax'
 import { BudgetPage } from './pages/Budget'
+import { BankablePage } from './pages/Bankable'
 import { JournalPage } from './pages/Journal'
 import { JournalFormPage } from './pages/JournalForm'
 import { PeriodsPage } from './pages/Periods'
@@ -48,6 +49,7 @@ const BUILT: Record<string, () => ReactElement> = {
   '/payroll': () => <PayrollPage />,
   '/pajak': () => <TaxPage />,
   '/anggaran': () => <BudgetPage />,
+  '/bankable': () => <BankablePage />,
 }
 
 const JOURNAL_FORM: NavItem = { path: '/jurnal/baru', label: 'Jurnal baru', icon: '≡', perm: 'jurnal.edit', module: 'akuntansi' }

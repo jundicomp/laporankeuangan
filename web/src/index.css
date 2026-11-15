@@ -606,3 +606,37 @@ input.num { text-align: right; font-variant-numeric: tabular-nums; }
 .ratio-sum .pill { margin-left: 0; font-size: 12px; padding: 3px 10px; }
 .ratio-tbl td:first-child { max-width: 560px; }
 .ratio-base { max-width: 640px; }
+
+/* ---------------------------------------------------------------- Langkah 9: paket bankable */
+.bk-opt .bk-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 4px 16px; margin-top: 8px; }
+.bk-ready h3 { margin: 0 0 8px; }
+.bk-ready.ok { border-left: 4px solid var(--brand); } .bk-ready.warn { border-left: 4px solid #d98a1c; }
+.bk-ready li { margin: 3px 0; }
+.bk-preview { background: #e9edf0; padding: 18px; border-radius: 10px; }
+.bk-doc { color: #111; font-size: 12.5px; line-height: 1.45; }
+.bk-preview .bk-page { background: #fff; max-width: 820px; margin: 0 auto 18px; padding: 42px 48px; box-shadow: 0 1px 4px rgba(0,0,0,.12); border-radius: 4px; }
+.bk-head { border-bottom: 2px solid #111; margin-bottom: 12px; padding-bottom: 6px; }
+.bk-head h2 { margin: 0; font-size: 17px; } .bk-head span { font-size: 12px; color: #3f4856; }
+.bk-tbl { width: 100%; font-size: 12px; } .bk-tbl td.ind { padding-left: 20px; }
+.bk-tbl tr.grp td { font-weight: 600; } .bk-tbl tr.grand td { font-weight: 800; border-top: 2px solid #111; }
+.bk-tbl.small-tbl { font-size: 11px; }
+.bk-tbl td .small { color: #4a5563; font-size: 10.5px; }
+.bk-doc h4 { margin: 16px 0 6px; font-size: 13px; }
+.bk-note { margin-bottom: 12px; } .bk-note p { margin: 4px 0; }
+.bk-list li { margin: 4px 0; }
+.bk-sign { margin: 36px 0 0 auto; width: 260px; text-align: center; }
+.bk-sign-space { height: 70px; }
+.bk-chart { width: 100%; height: auto; }
+.bk-cover { text-align: center; padding-top: 80px !important; min-height: 1000px; }
+.bk-cover h1 { font-size: 26px; margin: 18px 0 40px; }
+.bk-logo { max-height: 90px; max-width: 260px; }
+.bk-cover-title { font-size: 22px; font-weight: 800; letter-spacing: 2px; margin-bottom: 6px; }
+.bk-cover-meta { margin: 40px 0; }
+.bk-cover-co { margin-top: 30px; color: #3f4856; }
+.bk-toc { text-align: left; max-width: 420px; margin: 50px auto 0; font-size: 12px; }
+@media print {
+  #print-area .bk-page { page-break-before: always; padding: 0; box-shadow: none; margin: 0; max-width: none; }
+  #print-area .bk-page.first { page-break-before: auto; }
+  #print-area .bk-cover { min-height: 0; padding-top: 120px !important; }
+  #print-area .bk-tbl tr { page-break-inside: avoid; }
+}

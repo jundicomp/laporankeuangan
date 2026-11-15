@@ -3,7 +3,7 @@
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
 - Web: https://jundicomp.github.io/laporankeuangan/
-- Status: **Langkah 8 selesai** — anggaran per bulan, realisasi vs anggaran & proyeksi, analisis rasio keuangan. Langkah 7: aset tetap & penyusutan, payroll (BPJS, PPh 21 TER & tahunan, slip gaji), pajak per masa + setor & kalender. Langkah 6: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank. Langkah 5: pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
+- Status: **Langkah 9 selesai** — paket laporan bankable (PDF & Excel) dengan daftar periksa kesiapan. Langkah 8: anggaran per bulan, realisasi vs anggaran & proyeksi, analisis rasio keuangan. Langkah 7: aset tetap & penyusutan, payroll (BPJS, PPh 21 TER & tahunan, slip gaji), pajak per masa + setor & kalender. Langkah 6: neraca lajur, jurnal penutup, arus kas, perubahan ekuitas, CALK, rekonsiliasi bank. Langkah 5: pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
 
 ```
 laporankeuangan/
@@ -29,6 +29,7 @@ laporankeuangan/
 │  ├─ Payroll.gs                  karyawan, penggajian, BPJS, PPh 21
 │  ├─ Tax.gs                      rekap pajak per masa, setor, kalender
 │  ├─ Budget.gs                   anggaran, realisasi vs anggaran, analisis rasio
+│  ├─ Bankable.gs                 paket laporan untuk bank + daftar periksa kesiapan
 │  └─ Backup.gs                   backup harian ke Drive, impor saldo awal
 └─ web/src/
    ├─ api/client.ts               panggilan API + token + batch
@@ -39,6 +40,14 @@ laporankeuangan/
 ```
 
 ---
+
+## Update ke Langkah 9 (sekaligus Langkah 6–8, dari Langkah 5)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Ledger`, `Report`, `Sales`.
+2. Tambah 8 file baru: `Closing`, `Recon`, `Calk`, `Asset`, `Payroll`, `Tax`, `Budget`, `Bankable`.
+3. Jalankan **upgradeSchema** → log `0.9.0`.
+4. **Kelola deployment → ✏️ → Versi baru → Terapkan**, lalu `kirim-ke-github.bat`.
+5. **Pengaturan → Aktivasi modul**: Aset tetap, Payroll, Pajak, Anggaran & proyeksi, Paket laporan bankable (dan Rekonsiliasi bank).
 
 ## Update ke Langkah 8 (sekaligus Langkah 6 & 7, dari Langkah 5)
 
@@ -246,6 +255,11 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - **Realisasi vs anggaran**: realisasi dari buku besar tanpa jurnal penutup. Proyeksi setahun = realisasi s/d bulan terpilih + anggaran bulan-bulan sisanya. Dashboard memperingatkan bila beban > anggaran lebih dari 5% atau pendapatan < 90% anggaran.
 - **Rasio** (menu Laporan → Analisis rasio, juga di Anggaran & Analisis): likuiditas, solvabilitas (DER, DAR, utang bank/EBITDA, ICR), profitabilitas (margin, ROA, ROE), aktivitas (DSO, DIO, DPO, siklus kas, perputaran aset). Saldo rata-rata = (awal + akhir)/2, saldo awal (SA) dalam periode dihitung pembuka; rasio tahunan disetahunkan. Pembanding = periode yang sama tahun lalu.
 
+## Paket laporan bankable
+
+- Menu **Paket Bankable** (modul `bankable`, izin `laporan.view`): sampul, surat pernyataan tanggung jawab manajemen, ringkasan + grafik 24 bulan, laporan posisi keuangan & laba rugi komparatif (periode sama tahun lalu), perubahan ekuitas, arus kas, CALK, analisis rasio, lampiran omzet 24 bulan, saldo & mutasi rekening 12 bulan (transaksi batal tidak dihitung), umur piutang/utang, daftar aset tetap, kepatuhan pajak. Bagian bisa dipilih; cetak/PDF satu dokumen dan Excel per sheet.
+- **Daftar periksa kesiapan**: identitas perusahaan, neraca seimbang, arus kas cocok, jurnal draft, bulan belum dikunci, tahun lalu belum ditutup, buku pembantu (piutang, utang, persediaan, aset) vs buku besar, penyusutan, rekonsiliasi bank, pajak terlambat.
+
 ## Berikutnya
 
-Paket laporan bankable → multi perusahaan.
+Multi perusahaan.
