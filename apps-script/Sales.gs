@@ -38,18 +38,25 @@ function daysBetween_(a, b) {
 
 // ---------------------------------------------------------------- baca
 
-function invoiceRows_() {
-  return readTable_('T_Dokumen').filter(function (r) { return r.jenis === 'INV'; }).map(function (r) {
+/** Dokumen penjualan (INV) / pembelian (BELI) / penyesuaian stok (ADJ). Tanpa jenis = semua. */
+function docRows_(jenis) {
+  return readTable_('T_Dokumen').filter(function (r) { return !jenis || r.jenis === jenis; }).map(function (r) {
     r.tgl = ymd_(r.tgl);
     r.jatuh_tempo = r.jatuh_tempo ? ymd_(r.jatuh_tempo) : r.tgl;
     ['subtotal', 'diskon', 'diskon_nota', 'pajak', 'total', 'sisa', 'ppn_tarif'].forEach(function (k) { r[k] = Number(r[k]) || 0; });
     r.saldo_awal = bool_(r.saldo_awal);
     r.no = String(r.no || '');
     r.referensi = String(r.referensi || '');
+    r.akun_piutang = String(r.akun_piutang || '');
+    r.akun_utang = String(r.akun_utang || '');
     try { r.lines = JSON.parse(r.lines_json || '[]'); } catch (e) { r.lines = []; }
     delete r.lines_json;
     return r;
   });
+}
+
+function invoiceRows_() {
+  return docRows_('INV');
 }
 
 function paymentRows_() {
@@ -259,6 +266,12 @@ function actionSalesSave_(p, ctx) {
         row.no = asText_(String(p.no_asal).trim());
       } else {
         assertOpen_(tgl);
+        // persediaan: hitung HPP barang yang dilacak stoknya (gagal di sini bila stok kurang, sebelum ada yang ditulis)
+        const prods = productsMap_();
+        const stockItems = [];
+        calc.lines.forEach(function (l, i) { if (isTracked_(prods[l.produk_id])) stockItems.push({ produk_id: l.produk_id, qty: l.qty, idx: i }); });
+        const outs = stockItems.length ? planStockOut_(stockItems, prods) : [];
+        outs.forEach(function (o, k) { calc.lines[stockItems[k].idx].hpp = money_(o.nilai); });
         row.no = asText_(invoiceNumber_(tgl));
         const jl = [{ akun_id: piutangAcc, memo: c.nama, debit: money_(calc.total), kredit: 0 }];
         if (calc.diskon) jl.push({ akun_id: AKUN_POTONGAN_JUAL, memo: 'Diskon penjualan', debit: money_(calc.diskon), kredit: 0 });
@@ -266,12 +279,20 @@ function actionSalesSave_(p, ctx) {
         calc.lines.forEach(function (l) { byAcc[l.akun_id] = (byAcc[l.akun_id] || 0) + l._gross; });
         Object.keys(byAcc).forEach(function (a) { if (byAcc[a]) jl.push({ akun_id: a, memo: (accs[a] || {}).nama || '', debit: 0, kredit: money_(byAcc[a]) }); });
         if (calc.pajak) jl.push({ akun_id: AKUN_PPN_KELUARAN, memo: 'PPN ' + calc.tarif + '%', debit: 0, kredit: money_(calc.pajak) });
+        outs.forEach(function (o) {
+          const prod = prods[o.produk_id];
+          if (!o.nilai) return;
+          jl.push({ akun_id: cogsAccount_(prod), memo: 'HPP ' + prod.nama, debit: money_(o.nilai), kredit: 0 });
+          jl.push({ akun_id: invAccount_(prod), memo: prod.nama, debit: 0, kredit: money_(o.nilai) });
+        });
         const no = String(row.no).slice(1);
         const head = postJournal_(ctx, { tgl: tgl, jenis: 'PJ', keterangan: 'Penjualan ' + no + ' — ' + c.nama, referensi: no, ref_dok: id, lines: jl });
         row.jurnal_id = head.id;
         row.ref_id = head.no;
+        writeStock_(ctx, tgl, id, head.id, outs.map(function (o) { return { produk_id: o.produk_id, qty: -o.qty, nilai: -o.nilai, jenis: 'jual', ref_no: no, keterangan: c.nama }; }));
+        row.lines_json = JSON.stringify(calc.lines.map(function (l) { const o = Object.assign({}, l); delete o._gross; delete o._disc; return o; }));
         appendObjects_('T_DokumenDetail', calc.lines.map(function (l, i) {
-          return { dok_id: id, baris: i + 1, produk_id: l.produk_id, deskripsi: asText_(l.deskripsi), qty: l.qty, harga: l.harga, diskon: l.diskon, pajak_id: calc.tarif ? 'PPN' : '', gudang_id: '', hpp: '' };
+          return { dok_id: id, baris: i + 1, produk_id: l.produk_id, deskripsi: asText_(l.deskripsi), qty: l.qty, harga: l.harga, diskon: l.diskon, pajak_id: calc.tarif ? 'PPN' : '', gudang_id: '', hpp: l.hpp || '' };
         }));
       }
     } else {
@@ -317,6 +338,7 @@ function actionSalesVoid_(p, ctx) {
     if (inv.jurnal_id) {
       const j = actionJournalGet_({ id: inv.jurnal_id });
       assertOpen_(j.tgl);
+      voidStockOf_(inv.id, productsMap_());
       const linesC = j.lines.map(function (l) { return { akun_id: l.akun_id, memo: l.memo, debit: cents_(l.debit), kredit: cents_(l.kredit) }; });
       pembalik = reverseJournal_(ctx, j, linesC, j.tgl, 'Pembatalan ' + inv.no + ': ' + alasan, true).no;
       updateWhere_('T_Jurnal', 'id', j.id, { status: 'batal', alasan_batal: alasan, dibatalkan_oleh: ctx.session.username, dibatalkan_pada: now });
@@ -417,7 +439,7 @@ function actionArPayVoid_(p, ctx) {
     }
     if (pay.kasbank_trx) {
       const trx = cashRows_().filter(function (r) { return r.id === pay.kasbank_trx; })[0];
-      if (trx && bool_(trx.rekon)) throw new ApiError_('VALIDATION', 'Penerimaan ini sudah direkonsiliasi dengan rekening koran.');
+      if (trx && bool_(trx.rekon)) throw new ApiError_('VALIDATION', 'Transaksi kas/bank ini sudah direkonsiliasi dengan rekening koran.');
     }
     const j = actionJournalGet_({ id: pay.jurnal_id });
     assertOpen_(j.tgl);
@@ -427,7 +449,7 @@ function actionArPayVoid_(p, ctx) {
     updateWhere_('T_Jurnal', 'id', j.id, { status: 'batal', alasan_batal: alasan, dibatalkan_oleh: ctx.session.username, dibatalkan_pada: now });
     if (pay.kasbank_trx) updateWhere_('T_KasBank', 'id', pay.kasbank_trx, { status: 'batal', alasan_batal: asText_(alasan) });
     updateWhere_('T_Pembayaran', 'id', pay.id, { status: 'batal', alasan_batal: asText_(alasan) });
-    const inv = invoiceRows_().filter(function (r) { return r.id === pay.dok_id; })[0];
+    const inv = docRows_().filter(function (r) { return r.id === pay.dok_id; })[0];
     const sisa = recomputeSisa_(inv);
     audit_(ctx, 'BATAL', 'T_Pembayaran', pay.no, { jumlah: pay.jumlah, potongan: pay.potongan }, { status: 'batal', sisa_invoice: money_(sisa) }, alasan);
     return { id: pay.id, status: 'batal', pembalik: rev.no, sisa: money_(sisa) };
@@ -437,8 +459,8 @@ function actionArPayVoid_(p, ctx) {
 function actionArFollowup_(p, ctx) {
   const catatan = String(p.catatan || '').trim();
   if (!catatan) throw new ApiError_('VALIDATION', 'Isi catatan penagihan.');
-  const inv = invoiceRows_().filter(function (r) { return r.id === p.dok_id; })[0];
-  if (!inv) throw new ApiError_('NOT_FOUND', 'Invoice tidak ditemukan.');
+  const inv = docRows_().filter(function (r) { return r.id === p.dok_id; })[0];
+  if (!inv) throw new ApiError_('NOT_FOUND', 'Dokumen tidak ditemukan.');
   const tgl = p.tgl ? ymd_(p.tgl) : todayYmd_();
   appendObjects_('T_Penagihan', [{ dok_id: inv.id, tgl: asText_(tgl), via: asText_(String(p.via || 'telepon')), catatan: asText_(catatan), oleh: ctx.session.username }]);
   return { ok: true };
@@ -446,15 +468,15 @@ function actionArFollowup_(p, ctx) {
 
 // ---------------------------------------------------------------- umur piutang
 
-/** Sisa tiap invoice per tanggal `per` (pembayaran sesudah `per` belum dihitung). */
-function openInvoicesAt_(per) {
+/** Sisa tiap dokumen (INV/BELI) per tanggal `per` (pembayaran sesudah `per` belum dihitung). */
+function openDocsAt_(jenis, per) {
   const paid = {};
   paymentRows_().forEach(function (r) {
     if (r.status === 'batal' || r.tgl > per) return;
     paid[r.dok_id] = (paid[r.dok_id] || 0) + cents_(r.jumlah) + cents_(r.potongan);
   });
-  // invoice batal dibalik bertanggal sama dengan invoice-nya, jadi dianggap tidak pernah ada
-  return invoiceRows_().filter(function (r) { return r.tgl <= per && r.status === 'posted'; })
+  // dokumen batal dibalik bertanggal sama dengan dokumennya, jadi dianggap tidak pernah ada
+  return docRows_(jenis).filter(function (r) { return r.tgl <= per && r.status === 'posted'; })
     .map(function (r) { r.sisa_c = cents_(r.total) - (paid[r.id] || 0); return r; })
     .filter(function (r) { return r.sisa_c > 0; });
 }
@@ -468,33 +490,35 @@ function bucketOf_(jt, per) {
   return 'd90p';
 }
 
-function actionArAging_(p) {
-  const per = p.per ? ymd_(p.per) : todayYmd_();
-  const custs = {};
+/**
+ * Umur piutang / utang. cfg: { jenis, akunDefault, akunField, pihak (map id→master), sign (+1 saldo debit, -1 saldo kredit) }
+ * Total daftar dokumen terbuka dibandingkan dengan saldo buku besar akun kontrolnya.
+ */
+function agingOf_(per, cfg) {
+  const parties = {};
   const totals = {};
   AGING_BUCKETS.forEach(function (b) { totals[b.key] = 0; });
   var grand = 0;
-  const piutangAccs = {};
-  piutangAccs[AKUN_PIUTANG] = true;
-  const cmap = customersMap_();
-  openInvoicesAt_(per).forEach(function (r) {
+  const accs = {};
+  accs[cfg.akunDefault] = true;
+  openDocsAt_(cfg.jenis, per).forEach(function (r) {
     const b = bucketOf_(r.jatuh_tempo, per);
-    piutangAccs[String(r.akun_piutang || AKUN_PIUTANG)] = true;
-    if (!custs[r.pihak_id]) {
-      const c = cmap[r.pihak_id] || {};
-      custs[r.pihak_id] = { pelanggan_id: r.pihak_id, nama: c.nama || r.pihak_nama, telepon: c.telepon || '', batas_kredit: c.batas_kredit || 0, total: 0, b: {}, invoices: [] };
-      AGING_BUCKETS.forEach(function (x) { custs[r.pihak_id].b[x.key] = 0; });
+    accs[String(r[cfg.akunField] || cfg.akunDefault)] = true;
+    if (!parties[r.pihak_id]) {
+      const c = cfg.pihak[r.pihak_id] || {};
+      parties[r.pihak_id] = { pihak_id: r.pihak_id, nama: c.nama || r.pihak_nama, telepon: c.telepon || '', batas_kredit: Number(c.batas_kredit) || 0, total: 0, b: {}, invoices: [] };
+      AGING_BUCKETS.forEach(function (x) { parties[r.pihak_id].b[x.key] = 0; });
     }
-    const cu = custs[r.pihak_id];
+    const cu = parties[r.pihak_id];
     cu.total += r.sisa_c;
     cu.b[b] += r.sisa_c;
     totals[b] += r.sisa_c;
     grand += r.sisa_c;
-    cu.invoices.push({ id: r.id, no: r.no, tgl: r.tgl, jatuh_tempo: r.jatuh_tempo, total: r.total, sisa: money_(r.sisa_c), bucket: b,
+    cu.invoices.push({ id: r.id, no: r.no, referensi: r.referensi, tgl: r.tgl, jatuh_tempo: r.jatuh_tempo, total: r.total, sisa: money_(r.sisa_c), bucket: b,
       hari: Math.max(0, daysBetween_(r.jatuh_tempo, per)), saldo_awal: r.saldo_awal });
   });
-  const list = Object.keys(custs).map(function (k) {
-    const c = custs[k];
+  const list = Object.keys(parties).map(function (k) {
+    const c = parties[k];
     c.total = money_(c.total);
     Object.keys(c.b).forEach(function (x) { c.b[x] = money_(c.b[x]); });
     c.invoices.sort(function (a, b) { return a.jatuh_tempo < b.jatuh_tempo ? -1 : 1; });
@@ -502,10 +526,15 @@ function actionArAging_(p) {
     return c;
   }).sort(function (a, b) { return b.total - a.total; });
   var gl = 0;
-  Object.keys(piutangAccs).forEach(function (a) { gl += balanceAt_(a, per); });
+  Object.keys(accs).forEach(function (a) { gl += balanceAt_(a, per) * cfg.sign; });
   const t = {};
   Object.keys(totals).forEach(function (k) { t[k] = money_(totals[k]); });
-  return { per: per, buckets: AGING_BUCKETS, customers: list, totals: t, total: money_(grand), gl: money_(gl), akun: Object.keys(piutangAccs) };
+  return { per: per, buckets: AGING_BUCKETS, customers: list, totals: t, total: money_(grand), gl: money_(gl), akun: Object.keys(accs) };
+}
+
+function actionArAging_(p) {
+  const per = p.per ? ymd_(p.per) : todayYmd_();
+  return agingOf_(per, { jenis: 'INV', akunDefault: AKUN_PIUTANG, akunField: 'akun_piutang', pihak: customersMap_(), sign: 1 });
 }
 
 // ---------------------------------------------------------------- dashboard
@@ -603,6 +632,38 @@ function actionDashboard_(p, ctx) {
         warn('warn', 'Saldo piutang di buku besar (Rp ' + formatRp_(cents_(ag.gl)) + ') berbeda dengan daftar invoice terbuka (Rp ' + formatRp_(cents_(ag.total)) +
           '). Catat piutang lama sebagai invoice saldo awal, atau periksa jurnal manual ke akun piutang.', '/piutang');
       }
+    }
+  }
+
+  if (hasPerm_(s, 'pembelian.view') && moduleActive_('pembelian')) {
+    const today = to;
+    var us = 0, ut = 0, nut = 0, useg = 0, nuseg = 0, udraft = 0;
+    purchaseRows_().forEach(function (r) {
+      if (r.status === 'draft') { udraft++; return; }
+      if (r.status !== 'posted' || r.sisa <= 0) return;
+      const c = cents_(r.sisa);
+      us += c;
+      if (r.jatuh_tempo < today) { ut += c; nut++; }
+      else if (r.jatuh_tempo <= addDays_(today, 7)) { useg += c; nuseg++; }
+    });
+    out.utang = { total: money_(us), terlambat: money_(ut), n_terlambat: nut, segera: money_(useg), n_segera: nuseg, draft: udraft };
+    if (nut) warn('err', nut + ' tagihan supplier lewat jatuh tempo, total Rp ' + formatRp_(ut) + '.', '/utang');
+    if (nuseg) warn('info', nuseg + ' tagihan supplier jatuh tempo dalam 7 hari (Rp ' + formatRp_(useg) + ').', '/pembelian?status=terbuka');
+    if (moduleActive_('utang')) {
+      const ap = actionApAging_({ per: to });
+      if (cents_(ap.total) !== cents_(ap.gl)) {
+        warn('warn', 'Saldo utang usaha di buku besar (Rp ' + formatRp_(cents_(ap.gl)) + ') berbeda dengan daftar tagihan terbuka (Rp ' + formatRp_(cents_(ap.total)) +
+          '). Catat utang lama sebagai tagihan saldo awal, atau periksa jurnal manual ke akun utang.', '/utang');
+      }
+    }
+  }
+  if (hasPerm_(s, 'persediaan.view') && moduleActive_('persediaan')) {
+    const st = actionStockList_({ per: to });
+    out.persediaan = { nilai: st.total, rendah: st.rendah, item: st.rows.length };
+    if (st.rendah) warn('warn', st.rendah + ' barang stoknya di bawah minimum.', '/persediaan');
+    if (cents_(st.total) !== cents_(st.gl)) {
+      warn('warn', 'Nilai persediaan di kartu stok (Rp ' + formatRp_(cents_(st.total)) + ') berbeda dengan buku besar (Rp ' + formatRp_(cents_(st.gl)) +
+        '). Catat stok awal di menu Persediaan, atau periksa jurnal manual ke akun persediaan.', '/persediaan');
     }
   }
 

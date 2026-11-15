@@ -34,7 +34,7 @@ function actionBootstrap_(p, ctx) {
   const settings = {};
   readTable_('SYS_Setting').forEach(function (r) { settings[r.kunci] = r.nilai; });
   return {
-    user: { id: s.user_id, username: s.username, nama: s.nama, role_id: s.role_id, role_nama: role.nama || s.role_id, cabang_akses: s.cabang_akses },
+    user: { id: s.user_id, username: s.username, nama: s.nama, email: (readTable_('SYS_User').filter(function (u) { return u.id === s.user_id; })[0] || {}).email || '', role_id: s.role_id, role_nama: role.nama || s.role_id, cabang_akses: s.cabang_akses },
     perms: permsOf_(s.role_id),
     company: comp,
     settings: settings,

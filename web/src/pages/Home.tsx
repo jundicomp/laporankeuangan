@@ -15,13 +15,15 @@ type Dash = {
   kas?: { total: number; rekening: { id: string; nama: string; jenis: string; saldo: number }[]; termasuk_bank: boolean }
   piutang?: { total: number; terlambat: number; n_terlambat: number; segera: number; n_segera: number; draft: number
     teratas: { id: string; no: string; pelanggan: string; sisa: number; jatuh_tempo: string; hari: number }[] }
+  utang?: { total: number; terlambat: number; n_terlambat: number; segera: number; n_segera: number; draft: number }
+  persediaan?: { nilai: number; rendah: number; item: number }
   peringatan: { level: 'warn' | 'err' | 'info'; text: string; link: string }[]
 }
 
 const ROADMAP = [
   { step: 'Langkah 1–4', title: 'MVP: akses & audit, jurnal & buku besar, kas & bank, laporan, invoice & piutang, dashboard', done: true },
-  { step: 'Berikutnya', title: 'Pembelian, utang supplier & persediaan' },
-  { step: 'Lalu', title: 'Siklus PSAK lengkap: neraca lajur, jurnal penutup, arus kas, CALK' },
+  { step: 'Langkah 5', title: 'Pembelian, utang supplier & persediaan (HPP otomatis)', done: true },
+  { step: 'Berikutnya', title: 'Siklus PSAK lengkap: neraca lajur, jurnal penutup, arus kas, CALK' },
   { step: 'Lalu', title: 'Aset tetap & penyusutan, payroll, pajak' },
   { step: 'Terakhir', title: 'Anggaran, paket laporan bankable, multi perusahaan' },
 ]
@@ -68,7 +70,7 @@ function TrendChart({ data }: { data: Dash['tren'] }) {
 }
 
 export function HomePage() {
-  const { boot, can } = useSession()
+  const { boot, can, modOn } = useSession()
   const [d, setD] = useState<Dash | null>(null)
   const [err, setErr] = useState('')
   const canDash = can('dashboard.view')
@@ -84,6 +86,7 @@ export function HomePage() {
     <>
       <PageHead title={`${greet()}, ${first}`} sub={`${boot?.company.nama} · ${d ? `posisi ${tglID(d.per)}` : 'memuat…'}`}>
         {can('penjualan.edit') && <Link className="btn" to="/penjualan?baru=1">+ Invoice</Link>}
+        {can('pembelian.edit') && modOn('pembelian') && <Link className="btn" to="/pembelian?baru=1">+ Pembelian</Link>}
         {can('kas.edit') && <Link className="btn" to="/kas-bank">Kas & Bank</Link>}
         {can('laporan.view') && <Link className="btn" to="/laporan">Laporan</Link>}
       </PageHead>
@@ -98,6 +101,11 @@ export function HomePage() {
               <small className="muted">{d.kas.rekening.length} rekening</small></div>}
             {d.piutang && <div className="card kpi"><span>Piutang belum dibayar</span><b>Rp {rp(d.piutang.total)}</b>
               {d.piutang.n_terlambat ? <small className="err-text">Rp {rp(d.piutang.terlambat)} lewat jatuh tempo</small> : <small className="ok-text">✓ tidak ada yang telat</small>}</div>}
+            {d.utang && <div className="card kpi"><span>Utang ke supplier</span><b>Rp {rp(d.utang.total)}</b>
+              {d.utang.n_terlambat ? <small className="err-text">Rp {rp(d.utang.terlambat)} lewat jatuh tempo</small>
+                : d.utang.n_segera ? <small className="warn-text">Rp {rp(d.utang.segera)} jatuh tempo ≤ 7 hari</small> : <small className="ok-text">✓ tidak ada yang mendesak</small>}</div>}
+            {d.persediaan && <div className="card kpi"><span>Nilai persediaan</span><b>Rp {rp(d.persediaan.nilai)}</b>
+              {d.persediaan.rendah ? <small className="warn-text">{d.persediaan.rendah} barang di bawah minimum</small> : <small className="muted">{d.persediaan.item} jenis barang</small>}</div>}
           </div>
 
           <div className="dash-grid">

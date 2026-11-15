@@ -5,7 +5,7 @@ import { Banner, Field, Modal, PageHead } from '../components/ui'
 
 export function ProfilePage() {
   const { boot } = useSession()
-  const [open, setOpen] = useState<'pw' | 'un' | null>(null)
+  const [open, setOpen] = useState<'pw' | 'un' | 'em' | null>(null)
   const [flash, setFlash] = useState('')
   const done = (t: string) => { setOpen(null); setFlash(t) }
 
@@ -19,15 +19,18 @@ export function ProfilePage() {
             <tr><td>Nama</td><td>{boot?.user.nama}</td></tr>
             <tr><td>Username</td><td className="mono">{boot?.user.username}</td></tr>
             <tr><td>Peran</td><td>{boot?.user.role_nama}</td></tr>
+            <tr><td>Email pemulihan</td><td>{boot?.user.email || <span className="warn-text">⚠ belum diisi — isi supaya bisa reset password sendiri bila lupa</span>}</td></tr>
           </tbody>
         </table>
         <div className="row">
           <button className="btn primary" onClick={() => { setFlash(''); setOpen('pw') }}>Ganti password</button>
           <button className="btn" onClick={() => { setFlash(''); setOpen('un') }}>Ganti username</button>
+          <button className="btn" onClick={() => { setFlash(''); setOpen('em') }}>{boot?.user.email ? 'Ganti email' : 'Isi email'}</button>
         </div>
       </div>
       {open === 'pw' && <PasswordForm onClose={() => setOpen(null)} onDone={done} />}
       {open === 'un' && <UsernameForm onClose={() => setOpen(null)} onDone={done} />}
+      {open === 'em' && <EmailForm onClose={() => setOpen(null)} onDone={done} />}
     </>
   )
 }
@@ -86,6 +89,38 @@ function UsernameForm({ onClose, onDone }: { onClose: () => void; onDone: (t: st
       footer={<><button className="btn" onClick={onClose}>Batal</button><button type="submit" form="un-form" className="btn primary" disabled={busy || un === boot?.user.username}>{busy ? 'Menyimpan…' : 'Simpan'}</button></>}>
       <form id="un-form" className="stack" onSubmit={save}>
         <Field label="Username baru" value={un} onChange={(e) => setUn(e.target.value)} required hint="huruf kecil, angka, titik, minus" />
+        <Banner kind="err">{err}</Banner>
+      </form>
+    </Modal>
+  )
+}
+
+function EmailForm({ onClose, onDone }: { onClose: () => void; onDone: (t: string) => void }) {
+  const { boot, reload } = useSession()
+  const [email, setEmail] = useState(boot?.user.email ?? '')
+  const [password, setPassword] = useState('')
+  const [err, setErr] = useState('')
+  const [busy, setBusy] = useState(false)
+  const save = async (e?: FormEvent) => {
+    e?.preventDefault()
+    setErr('')
+    if (!password) return setErr('Isi password Anda untuk konfirmasi.')
+    setBusy(true)
+    try {
+      await call('auth.changeEmail', { email, password })
+      await reload()
+      onDone(email ? `Email pemulihan disimpan: ${email}. Link lupa password akan dikirim ke sini.` : 'Email pemulihan dikosongkan.')
+    } catch (e2) {
+      setErr(errorText(e2))
+      setBusy(false)
+    }
+  }
+  return (
+    <Modal size="sm" title="Email pemulihan" onClose={onClose} dirty={!busy && (email !== (boot?.user.email ?? '') || !!password)}
+      footer={<><button className="btn" onClick={onClose}>Batal</button><button type="submit" form="em-form" className="btn primary" disabled={busy}>{busy ? 'Menyimpan…' : 'Simpan'}</button></>}>
+      <form id="em-form" className="stack" onSubmit={save}>
+        <Field label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="nama@gmail.com" hint="dipakai untuk link lupa password" />
+        <Field label="Password saat ini" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required autoComplete="current-password" />
         <Banner kind="err">{err}</Banner>
       </form>
     </Modal>

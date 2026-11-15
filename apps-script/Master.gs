@@ -16,9 +16,9 @@ const MASTER = {
   },
   produk: {
     sheet: 'M_Produk', prefix: 'P', codeField: 'sku', label: 'Produk/jasa',
-    fields: ['sku', 'barcode', 'nama', 'tipe', 'satuan', 'harga_beli', 'harga_jual', 'stok_min', 'stok_max', 'akun_penjualan', 'akun_persediaan', 'akun_hpp'],
+    fields: ['sku', 'barcode', 'nama', 'tipe', 'satuan', 'harga_beli', 'harga_jual', 'stok_min', 'stok_max', 'akun_penjualan', 'akun_persediaan', 'akun_hpp', 'lacak_stok'],
     required: ['nama', 'tipe', 'satuan'], numeric: ['harga_beli', 'harga_jual', 'stok_min', 'stok_max'],
-    text: ['sku', 'barcode', 'akun_penjualan', 'akun_persediaan', 'akun_hpp'],
+    text: ['sku', 'barcode', 'akun_penjualan', 'akun_persediaan', 'akun_hpp', 'lacak_stok'],
   },
 };
 
@@ -69,6 +69,11 @@ function cleanMaster_(d, p, accs) {
   d.required.forEach(function (f) { if (o[f] === '') throw new ApiError_('VALIDATION', f + ' wajib diisi.'); });
   if (o.email && !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(o.email)) throw new ApiError_('VALIDATION', 'Format email tidak valid: ' + o.email);
   if (d.sheet === 'M_Produk' && ['barang', 'jasa'].indexOf(o.tipe) < 0) throw new ApiError_('VALIDATION', 'Tipe produk harus "barang" atau "jasa".');
+  if (d.sheet === 'M_Produk') {
+    o.lacak_stok = String(o.lacak_stok || '').toLowerCase();
+    if (['', 'ya', 'tidak'].indexOf(o.lacak_stok) < 0) throw new ApiError_('VALIDATION', 'Lacak stok harus "ya" atau "tidak".');
+    if (o.tipe === 'jasa') o.lacak_stok = 'tidak';
+  }
   ['akun_piutang', 'akun_utang', 'akun_penjualan', 'akun_persediaan', 'akun_hpp'].forEach(function (f) {
     if (o[f] && (!accs[o[f]] || bool_(accs[o[f]].is_header))) throw new ApiError_('VALIDATION', 'Akun ' + o[f] + ' tidak ada atau berupa header.');
   });

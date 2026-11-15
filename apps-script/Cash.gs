@@ -196,7 +196,7 @@ function actionCashVoid_(p, ctx) {
     const r = cashRows_().filter(function (x) { return x.id === p.id; })[0];
     if (!r) throw new ApiError_('NOT_FOUND', 'Transaksi tidak ditemukan.');
     if (r.status === 'batal') throw new ApiError_('VALIDATION', 'Transaksi ini sudah dibatalkan.');
-    if (r.sumber_dok) throw new ApiError_('VALIDATION', 'Transaksi ini pelunasan invoice ' + (r.referensi || '') + '. Batalkan dari menu Penjualan/Piutang supaya sisa tagihan ikut kembali.');
+    if (r.sumber_dok) throw new ApiError_('VALIDATION', 'Transaksi ini pembayaran dokumen ' + (r.referensi || '') + '. Batalkan dari dokumennya (menu Penjualan/Piutang atau Pembelian/Utang) supaya sisa tagihan ikut kembali.');
     if (bool_(r.rekon)) throw new ApiError_('VALIDATION', 'Transaksi sudah direkonsiliasi dengan rekening koran.');
     const j = actionJournalGet_({ id: r.jurnal_id });
     assertOpen_(j.tgl);

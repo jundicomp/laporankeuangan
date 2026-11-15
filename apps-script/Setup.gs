@@ -6,7 +6,7 @@
  *                Aman dijalankan berulang — hanya menambah tab/kolom/data yang belum ada.
  */
 
-const SCHEMA_VERSION = '0.5.0';
+const SCHEMA_VERSION = '0.6.1';
 
 const SCHEMA = {
   // ---- master
@@ -14,7 +14,7 @@ const SCHEMA = {
   M_Cabang: ['id', 'kode', 'nama', 'alamat', 'divisi_json', 'aktif'],
   M_Pelanggan: ['id', 'kode', 'nama', 'npwp', 'telepon', 'email', 'alamat', 'batas_kredit', 'top_hari', 'akun_piutang', 'aktif'],
   M_Supplier: ['id', 'kode', 'nama', 'npwp', 'telepon', 'email', 'alamat', 'top_hari', 'akun_utang', 'aktif'],
-  M_Produk: ['id', 'sku', 'barcode', 'nama', 'tipe', 'satuan', 'harga_beli', 'harga_jual', 'stok_min', 'stok_max', 'akun_penjualan', 'akun_persediaan', 'akun_hpp', 'aktif'],
+  M_Produk: ['id', 'sku', 'barcode', 'nama', 'tipe', 'satuan', 'harga_beli', 'harga_jual', 'stok_min', 'stok_max', 'akun_penjualan', 'akun_persediaan', 'akun_hpp', 'aktif', 'lacak_stok'],
   M_Gudang: ['id', 'kode', 'nama', 'cabang_id', 'aktif'],
   M_Karyawan: ['id', 'nik', 'nama', 'jabatan', 'divisi', 'gaji_pokok', 'ptkp', 'rekening', 'aktif'],
   M_Akun: ['kode', 'nama', 'tipe', 'saldo_normal', 'parent', 'is_header', 'aktif'],
@@ -23,13 +23,14 @@ const SCHEMA = {
   // ---- transaksi
   T_Dokumen: ['id', 'jenis', 'no', 'tgl', 'cabang_id', 'pihak_id', 'status', 'subtotal', 'diskon', 'pajak', 'total', 'sisa', 'jatuh_tempo', 'ref_id', 'catatan', 'dibuat_oleh', 'dibuat_pada',
     'pihak_nama', 'referensi', 'diskon_nota', 'ppn_tarif', 'lines_json', 'akun_piutang', 'jurnal_id', 'saldo_awal',
-    'diposting_oleh', 'diposting_pada', 'diubah_pada', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada'],
+    'diposting_oleh', 'diposting_pada', 'diubah_pada', 'alasan_batal', 'dibatalkan_oleh', 'dibatalkan_pada', 'akun_utang'],
   T_DokumenDetail: ['dok_id', 'baris', 'produk_id', 'deskripsi', 'qty', 'harga', 'diskon', 'pajak_id', 'gudang_id', 'hpp'],
   T_Pembayaran: ['id', 'dok_id', 'tgl', 'metode', 'kasbank_id', 'jumlah', 'jurnal_id',
     'no', 'potongan', 'akun_potongan', 'keterangan', 'referensi', 'kasbank_trx', 'status', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada'],
   T_KasBank: ['id', 'tgl', 'kasbank_id', 'jenis', 'akun_lawan', 'jumlah', 'keterangan', 'rekon', 'jurnal_id',
     'no', 'kasbank_tujuan', 'metode', 'kontak_tipe', 'kontak_id', 'kontak_nama', 'referensi', 'lines_json', 'status', 'alasan_batal', 'dibuat_oleh', 'dibuat_pada', 'sumber_dok'],
-  T_StokMutasi: ['id', 'tgl', 'produk_id', 'gudang_id', 'qty', 'harga', 'batch', 'serial', 'exp', 'sumber_dok'],
+  T_StokMutasi: ['id', 'tgl', 'produk_id', 'gudang_id', 'qty', 'harga', 'batch', 'serial', 'exp', 'sumber_dok',
+    'jenis', 'nilai', 'ref_no', 'keterangan', 'status', 'jurnal_id', 'dibuat_oleh', 'dibuat_pada'],
   T_FifoLayer: ['produk_id', 'gudang_id', 'tgl', 'qty_sisa', 'harga'],
   T_Aset: ['id', 'nama', 'kategori', 'cabang_id', 'tgl_beli', 'harga', 'umur_bln', 'residu', 'akun_aset', 'akun_akum', 'akun_beban', 'status'],
   T_Anggaran: ['periode', 'cabang_id', 'divisi', 'akun_id', 'jumlah'],
@@ -46,6 +47,7 @@ const SCHEMA = {
   SYS_Role: ['id', 'nama', 'izin_json', 'batas_approval'],
   SYS_Sesi: ['token', 'user_id', 'dibuat', 'kedaluwarsa'],
   SYS_Login: ['waktu', 'username', 'status', 'keterangan'],
+  SYS_Reset: ['token_hash', 'user_id', 'dibuat', 'kedaluwarsa', 'dipakai', 'tujuan'],
   SYS_Approval: ['id', 'dok_id', 'level', 'approver_id', 'status', 'catatan', 'waktu'],
   SYS_Audit: ['waktu', 'user_id', 'aksi', 'tabel', 'rec_id', 'before_json', 'after_json', 'alasan'],
   SYS_Counter: ['jenis', 'cabang', 'tahun', 'nomor_terakhir'],
@@ -314,7 +316,7 @@ function upgradeSchema() {
   if (!found) settings.appendRow(['schema_version', SCHEMA_VERSION]);
   const keys = sv.map(function (r) { return r[0]; });
   if (keys.indexOf('format_nomor_jurnal') < 0) settings.appendRow(['format_nomor_jurnal', '{JENIS}/{YYYY}/{MM}/{####}']);
-  const defaults = { format_nomor_invoice: 'INV/{YYYY}/{MM}/{####}', ppn_tarif: '11', top_default: '14' };
+  const defaults = { format_nomor_invoice: 'INV/{YYYY}/{MM}/{####}', ppn_tarif: '11', top_default: '14', format_nomor_pembelian: 'BL/{YYYY}/{MM}/{####}', stok_minus_boleh: 'tidak', app_url: APP_URL_DEFAULT };
   Object.keys(defaults).forEach(function (k) { if (keys.indexOf(k) < 0) settings.appendRow([k, defaults[k]]); });
   for (var s2 = 1; s2 < sv.length; s2++) {
     // nomor invoice versi awal memakai kode cabang; perusahaan tunggal cukup tahun/bulan

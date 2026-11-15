@@ -3,7 +3,7 @@
 React (Vite) di GitHub Pages · API di Google Apps Script · database di Google Sheets.
 
 - Web: https://jundicomp.github.io/laporankeuangan/
-- Status: **MVP selesai (Langkah 4)** — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
+- Status: **Langkah 5 selesai** — pembelian & tagihan supplier, pembayaran utang bertahap, umur utang, persediaan perpetual (rata-rata) dengan kartu stok, pemakaian bahan, stok opname, HPP otomatis. Sebelumnya, MVP (Langkah 4) — invoice penjualan + cetak/PDF, piutang & pelunasan bertahap (termasuk potongan PPh 23), umur piutang, dashboard keuangan. (Langkah 1–3: login & akses, jurnal, buku besar, neraca saldo, tutup buku, kas & bank, master data, laporan LR & posisi keuangan, impor Excel, backup harian.)
 
 ```
 laporankeuangan/
@@ -20,6 +20,8 @@ laporankeuangan/
 │  ├─ Cash.gs                     rekening kas/bank, pemasukan, pengeluaran, transfer
 │  ├─ Report.gs                   laba rugi & posisi keuangan (SAK EP)
 │  ├─ Sales.gs                    invoice, pelunasan, umur piutang, penagihan, dashboard
+│  ├─ Purchase.gs                 tagihan pembelian, pembayaran utang, umur utang
+│  ├─ Stock.gs                    persediaan rata-rata: mutasi, kartu stok, pemakaian, opname, stok awal
 │  └─ Backup.gs                   backup harian ke Drive, impor saldo awal
 └─ web/src/
    ├─ api/client.ts               panggilan API + token + batch
@@ -30,6 +32,20 @@ laporankeuangan/
 ```
 
 ---
+
+## Update ke Langkah 5 (dari Langkah 4)
+
+1. Di project **Neraca API**: ganti isi `main.gs`, `Setup`, `Ledger`, `Master`, `Cash`, `Sales`.
+2. Tambah 2 file baru (**+ → Skrip**): `Stock` dan `Purchase`.
+3. Simpan, jalankan **upgradeSchema** (menambah kolom di `M_Produk`, `T_StokMutasi`, `T_Dokumen`).
+4. **Terapkan → Kelola deployment → ✏️ → Versi baru → Terapkan.**
+5. Klik dua kali `kirim-ke-github.bat`.
+
+Mulai pakai:
+1. **Pengaturan → Aktivasi modul**: nyalakan **Utang & jadwal bayar** (Pembelian ikut menyala) dan **Persediaan perpetual**.
+2. **Master Data → Produk**: untuk bahan & barang dagang pilih tipe *barang* dan **Lacak stok: ya**; barang pesanan (spanduk, cetakan) pilih *tidak*.
+3. **Persediaan → Stok awal**: rinci saldo awal persediaan per barang (qty × harga pokok) sampai halaman menyatakan cocok dengan buku besar.
+4. **Utang → Utang lama**: catat tagihan supplier yang belum dibayar dari sebelum memakai aplikasi.
 
 ## Update ke Langkah 4 (dari Langkah 3)
 
@@ -160,6 +176,16 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - Piutang lama (sebelum memakai aplikasi) dicatat sebagai invoice saldo awal tanpa jurnal baru. Umur piutang selalu dibandingkan dengan saldo buku besar akun piutang; selisih ditandai di halaman Piutang dan dashboard.
 - Cetak/PDF: tombol **Cetak / PDF** di invoice → pilih *Simpan sebagai PDF* di jendela cetak; nama file otomatis = nomor invoice.
 
-## Berikutnya (setelah MVP)
+## Aturan Pembelian, Utang & Persediaan
 
-Pembelian, utang supplier & persediaan → siklus PSAK lengkap (neraca lajur, jurnal penutup, arus kas, CALK) → aset tetap, payroll, pajak → anggaran, paket laporan bankable, multi perusahaan.
+- Tagihan pembelian diposting: Dr Persediaan (barang yang dilacak stoknya) / Dr akun biaya pilihan per baris · Dr PPN masukan · Cr Utang usaha. Diskon nota dibagi proporsional ke baris sehingga harga pokok stok sudah bersih.
+- Nomor internal `BL/2026/10/0001`; nomor tagihan supplier yang sama untuk supplier yang sama diperingatkan (bisa dilewati dengan konfirmasi).
+- Pembayaran utang bertahap: Dr Utang usaha · Cr Kas/Bank · Cr akun potongan (PPh 23 yang kita potong → 2-1203 Utang PPh 23). Kas tunai tidak boleh minus. Pembayaran tampil di Kas & Bank, dibatalkan dari tagihannya.
+- Persediaan memakai rata-rata tertimbang. Saldo persediaan = jumlah nilai semua mutasi aktif, dan setiap mutasi dibuat bersama jurnalnya, jadi kartu stok selalu sama dengan buku besar (selisih ditandai).
+- Invoice barang yang dilacak stoknya otomatis mencatat HPP (Dr 5-1101, Cr Persediaan). Penjualan ditolak bila stok kurang (kecuali `stok_minus_boleh` = `ya` di `SYS_Setting`).
+- Pemakaian bahan: Dr akun pilihan (default 5-1101 HPP) / Cr Persediaan. Stok opname: selisih ke 5-1301 Selisih persediaan. Stok awal tidak membuat jurnal.
+- Tagihan pembelian tidak bisa dibatalkan bila barangnya sudah terjual/terpakai sehingga stok akan minus.
+
+## Berikutnya
+
+Siklus PSAK lengkap (neraca lajur, jurnal penutup, arus kas, CALK, rekonsiliasi bank) → aset tetap, payroll, pajak → anggaran, paket laporan bankable, multi perusahaan.

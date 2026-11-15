@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.5.2'
+export const APP_VERSION = '0.6.1'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,25 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '0.6.1', date: '2026-11-12', title: 'Lupa password lewat email',
+    changes: [
+      { type: 'baru', text: 'Tombol "Lupa password?" di halaman masuk: link untuk membuat password baru dikirim ke email (berlaku 30 menit, sekali pakai).' },
+      { type: 'baru', text: 'Email pemulihan bisa diisi/diganti sendiri di menu Profil.' },
+      { type: 'tingkat', text: 'Owner tanpa email tetap bisa memulihkan akun: link dikirim ke email perusahaan atau akun Google pemilik aplikasi.' },
+    ],
+  },
+  {
+    version: '0.6.0', date: '2026-10-12', title: 'Langkah 5 — Pembelian, utang & persediaan',
+    changes: [
+      { type: 'baru', text: 'Tagihan pembelian dari supplier: draft, posting otomatis ke utang, persediaan/biaya, dan PPN masukan; peringatan nomor tagihan supplier ganda.' },
+      { type: 'baru', text: 'Pembayaran utang bertahap dari kas/bank, termasuk potongan PPh 23 yang kita potong; umur utang dan utang lama dari saldo awal.' },
+      { type: 'baru', text: 'Persediaan perpetual metode rata-rata: kartu stok, stok awal, pemakaian bahan, stok opname, peringatan stok minimum.' },
+      { type: 'baru', text: 'HPP otomatis saat invoice barang diposting; penjualan ditolak bila stok tidak cukup.' },
+      { type: 'tingkat', text: 'Master produk: pilihan "Lacak stok" untuk membedakan bahan/barang dagang dengan barang pesanan.' },
+      { type: 'tingkat', text: 'Dashboard menampilkan utang supplier, nilai persediaan, dan selisih buku besar vs kartu stok / daftar tagihan.' },
+    ],
+  },
   {
     version: '0.5.2', date: '2026-10-12', title: 'Logo penuh',
     changes: [

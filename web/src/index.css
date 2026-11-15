@@ -517,3 +517,17 @@ input.num { text-align: right; font-variant-numeric: tabular-nums; }
   padding: 6px 12px; border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.25); z-index: 60; pointer-events: none; white-space: nowrap; animation: tipIn .18s ease-out; }
 .side-tip::before { content: ''; position: absolute; left: -5px; top: 50%; margin-top: -5px; border: 5px solid transparent; border-left: 0; border-right-color: var(--gold); }
 @keyframes tipIn { from { opacity: 0; transform: translate(-8px, -50%); } to { opacity: 1; transform: translate(0, -50%); } }
+.inv-form .w-acc { width: 210px; }
+.inv-form th:nth-child(2) { min-width: 200px; }
+.inv-form-bottom { grid-template-columns: minmax(0, 1fr) minmax(330px, 380px); }
+.inv-sum { width: 100%; table-layout: auto; }
+.inv-sum td.r { white-space: nowrap; }
+.inv-sum .check { white-space: nowrap; }
+.inv-sum .check input { width: auto; }
+.dash-kpis { grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); }
+.kpi b { white-space: nowrap; }
+
+/* lupa password */
+.forgot-layer { position: fixed; inset: 0; background: rgba(10, 30, 26, .55); display: grid; place-items: center; z-index: 80; padding: 16px; }
+.forgot-card { background: #fff; border-radius: 14px; padding: 26px; width: min(440px, 100%); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+.link.left { align-self: flex-start; }

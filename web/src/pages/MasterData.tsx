@@ -48,6 +48,7 @@ export const ENTITIES: Record<Entity, { label: string; codeField: string; fields
       { key: 'barcode', label: 'Barcode' },
       { key: 'stok_min', label: 'Stok minimum', kind: 'num' },
       { key: 'stok_max', label: 'Stok maksimum', kind: 'num' },
+      { key: 'lacak_stok', label: 'Lacak stok', kind: 'select', options: ['ya', 'tidak'], hint: 'ya = stok & HPP dihitung otomatis (barang dagang, bahan baku). tidak = dibuat sesuai pesanan / jasa.' },
     ],
   },
 }
@@ -133,7 +134,8 @@ function MasterForm({ entity, row, onClose, onSaved }: { entity: Entity; row: Ro
   const start: Record<string, string> = {}
   def.fields.forEach((f) => {
     const v = row?.[f.key]
-    start[f.key] = v === undefined || v === null ? (f.key === 'tipe' ? 'barang' : '') : f.money && v ? rp(Number(v)) : String(v)
+    start[f.key] = f.key === 'lacak_stok' ? (row ? String(v || 'tidak') : 'ya')
+      : v === undefined || v === null ? (f.key === 'tipe' ? 'barang' : '') : f.money && v ? rp(Number(v)) : String(v)
   })
   const [f, setF] = useState(start)
   const [aktif, setAktif] = useState(row ? !!row.aktif : true)

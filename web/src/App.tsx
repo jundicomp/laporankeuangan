@@ -1,5 +1,5 @@
 import type { ReactElement } from 'react'
-import { createHashRouter, Navigate, Route, RouterProvider, Routes } from 'react-router-dom'
+import { createHashRouter, Navigate, Route, RouterProvider, Routes, useLocation } from 'react-router-dom'
 import { SessionProvider, useSession } from './auth/session'
 import Layout from './components/Layout'
 import { Spinner } from './components/ui'
@@ -9,12 +9,14 @@ import { BackupPage } from './pages/Backup'
 import { CashBankPage } from './pages/CashBank'
 import { MasterPage } from './pages/MasterData'
 import { ReportsPage } from './pages/Reports'
-import { ReceivablesPage } from './pages/Receivables'
+import { PayablesPage, ReceivablesPage } from './pages/Receivables'
 import { SalesPage } from './pages/Sales'
+import { PurchasesPage } from './pages/Purchases'
+import { InventoryPage } from './pages/Inventory'
 import { JournalPage } from './pages/Journal'
 import { JournalFormPage } from './pages/JournalForm'
 import { PeriodsPage } from './pages/Periods'
-import { ConnectPage, LoginPage, SetupOwnerPage } from './pages/Auth'
+import { ConnectPage, LoginPage, ResetPage, SetupOwnerPage } from './pages/Auth'
 import { ForbiddenPage, HomePage, PlaceholderPage } from './pages/Home'
 import { ProfilePage } from './pages/Profile'
 import { SettingsPage } from './pages/Settings'
@@ -33,6 +35,9 @@ const BUILT: Record<string, () => ReactElement> = {
   '/backup': () => <BackupPage />,
   '/penjualan': () => <SalesPage />,
   '/piutang': () => <ReceivablesPage />,
+  '/pembelian': () => <PurchasesPage />,
+  '/utang': () => <PayablesPage />,
+  '/persediaan': () => <InventoryPage />,
 }
 
 const JOURNAL_FORM: NavItem = { path: '/jurnal/baru', label: 'Jurnal baru', icon: '≡', perm: 'jurnal.edit', module: 'akuntansi' }
@@ -51,8 +56,11 @@ function Guard({ item, page: override }: { item: NavItem; page?: ReactElement })
 
 function Gate() {
   const { status } = useSession()
+  const loc = useLocation()
   if (status === 'checking') return <div className="boot"><Spinner label="Menghubungkan ke server…" /></div>
   if (status === 'no-url' || status === 'offline') return <ConnectPage />
+  // link dari email lupa password — berlaku walau sedang login di perangkat ini
+  if (loc.pathname === '/reset') return <ResetPage />
   if (status === 'needs-owner') return <SetupOwnerPage />
   if (status === 'signed-out') return <LoginPage />
   return (

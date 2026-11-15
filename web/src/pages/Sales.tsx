@@ -27,7 +27,7 @@ export function StatusPill({ r }: { r: Pick<Invoice, 'bayar' | 'terlambat'> }) {
   )
 }
 
-const STATUS_TABS = [
+export const STATUS_TABS = [
   ['', 'Semua'], ['terbuka', 'Belum lunas'], ['terlambat', 'Lewat jatuh tempo'], ['lunas', 'Lunas'], ['draft', 'Draft'], ['batal', 'Dibatalkan'],
 ]
 
@@ -532,7 +532,7 @@ const POTONGAN = [
   ['4-1902', 'Potongan / diskon pelunasan'],
   ['6-1601', 'Dihapuskan (kerugian piutang)'],
 ]
-const METODE = [['transfer', 'Transfer bank'], ['tunai', 'Tunai'], ['qris', 'QRIS'], ['kartu', 'Kartu debit/kredit'], ['cek/giro', 'Cek / giro'], ['lainnya', 'Lainnya']]
+export const METODE = [['transfer', 'Transfer bank'], ['tunai', 'Tunai'], ['qris', 'QRIS'], ['kartu', 'Kartu debit/kredit'], ['cek/giro', 'Cek / giro'], ['lainnya', 'Lainnya']]
 
 function PaymentForm({ inv, kbs, onClose, onSaved }: { inv: Invoice; kbs: KB[]; onClose: () => void; onSaved: (t: string) => Promise<void> }) {
   const [tgl, setTgl] = useState(today() < inv.tgl ? inv.tgl : today())
