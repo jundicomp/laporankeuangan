@@ -3,7 +3,7 @@
  * Setiap rilis: tambahkan entri baru PALING ATAS dan ubah APP_VERSION.
  */
 export const APP_NAME = 'Neraca'
-export const APP_VERSION = '0.10.0'
+export const APP_VERSION = '1.0.0'
 
 export type ChangeType = 'baru' | 'tingkat' | 'perbaikan'
 export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', tingkat: 'Peningkatan', perbaikan: 'Perbaikan' }
@@ -11,6 +11,13 @@ export const CHANGE_LABEL: Record<ChangeType, string> = { baru: 'Fitur baru', ti
 export type Release = { version: string; date: string; title: string; changes: { type: ChangeType; text: string }[] }
 
 export const CHANGELOG: Release[] = [
+  {
+    version: '1.0.0', date: '2026-11-15', title: 'Roadmap lengkap',
+    changes: [
+      { type: 'tingkat', text: 'Semua langkah pembangunan selesai: akuntansi, penjualan, pembelian, persediaan, kas & bank, aset, payroll, pajak, siklus akhir periode, anggaran, rasio, dan paket bankable.' },
+      { type: 'tingkat', text: 'Satu aplikasi untuk satu perusahaan — modul "Multi perusahaan" dihapus dari daftar aktivasi.' },
+    ],
+  },
   {
     version: '0.10.0', date: '2026-11-15', title: 'Langkah 9 — Paket laporan bankable',
     changes: [

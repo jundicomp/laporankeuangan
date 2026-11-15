@@ -11,7 +11,7 @@ const GROUPS: { title: string; kode: string[] }[] = [
   { title: 'Pembelian', kode: ['pembelian', 'po', 'utang'] },
   { title: 'Persediaan', kode: ['persediaan', 'multigudang', 'batch'] },
   { title: 'SDM, aset & pajak', kode: ['aset', 'payroll', 'pajak'] },
-  { title: 'Kontrol & laporan', kode: ['approval', 'cabang', 'proyek', 'anggaran', 'rekonbank', 'bankable', 'multiperusahaan'] },
+  { title: 'Kontrol & laporan', kode: ['approval', 'cabang', 'proyek', 'anggaran', 'rekonbank', 'bankable'] },
 ]
 
 type Change = { kode: string; nama: string; aktif: boolean }

@@ -260,6 +260,6 @@ Owner · Direktur · Finance · Accounting · Admin · Kasir · Gudang · HR & P
 - Menu **Paket Bankable** (modul `bankable`, izin `laporan.view`): sampul, surat pernyataan tanggung jawab manajemen, ringkasan + grafik 24 bulan, laporan posisi keuangan & laba rugi komparatif (periode sama tahun lalu), perubahan ekuitas, arus kas, CALK, analisis rasio, lampiran omzet 24 bulan, saldo & mutasi rekening 12 bulan (transaksi batal tidak dihitung), umur piutang/utang, daftar aset tetap, kepatuhan pajak. Bagian bisa dipilih; cetak/PDF satu dokumen dan Excel per sheet.
 - **Daftar periksa kesiapan**: identitas perusahaan, neraca seimbang, arus kas cocok, jurnal draft, bulan belum dikunci, tahun lalu belum ditutup, buku pembantu (piutang, utang, persediaan, aset) vs buku besar, penyusutan, rekonsiliasi bank, pajak terlambat.
 
-## Berikutnya
+## Status
 
-Multi perusahaan.
+Semua langkah roadmap selesai. Satu instalasi aplikasi = satu perusahaan; perusahaan lain dipasang sebagai salinan aplikasi tersendiri (Apps Script + spreadsheet + web masing-masing).

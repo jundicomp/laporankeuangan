@@ -174,7 +174,6 @@ const MODULES = [
   ['proyek', 'Dimensi proyek', false, false, ''],
   ['rekonbank', 'Rekonsiliasi bank', false, false, 'kasbank'],
   ['bankable', 'Paket laporan bankable', false, false, 'laporan'],
-  ['multiperusahaan', 'Multi perusahaan', false, false, ''],
 ];
 
 function setupTemplate() {
@@ -311,6 +310,7 @@ function upgradeSchema() {
   });
   fixLegacyText_(ss, log);
   cleanUserEmails_(ss, log);
+  retireModules_(ss, log);
   try {
     if (ensureBackupTrigger_()) log.push('+ backup otomatis harian pukul 02.00 (folder Drive "' + BACKUP_FOLDER_NAME + '")');
   } catch (e) {
@@ -406,4 +406,15 @@ function cleanUserEmails_(ss, log) {
   var n = 0;
   vals.forEach(function (r) { const v = String(r[0] || ''); if (/^'/.test(v)) { r[0] = v.replace(/^'+/, '').trim(); n++; } });
   if (n) { rng.setValues(vals); invalidate_('SYS_User'); log.push('~ ' + n + ' email pengguna dibersihkan dari apostrof'); }
+}
+
+/** Modul yang tidak dipakai lagi dihapus dari daftar aktivasi (1 aplikasi = 1 perusahaan). */
+function retireModules_(ss, log) {
+  const sh = ss.getSheetByName('SYS_Modul');
+  if (!sh) return;
+  const v = sh.getDataRange().getValues();
+  for (var i = v.length - 1; i >= 1; i--) {
+    if (String(v[i][0]).replace(/^'/, '') === 'multiperusahaan') { sh.deleteRow(i + 1); log.push('- modul multiperusahaan dihapus dari daftar (1 aplikasi = 1 perusahaan)'); }
+  }
+  invalidate_('SYS_Modul');
 }
